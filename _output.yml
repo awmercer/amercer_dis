@@ -1,0 +1,23 @@
+bookdown::pdf_document2:
+  includes:
+    in_header: preamble.tex
+  latex_engine: xelatex
+  citation_package: natbib
+  keep_tex: yes
+  fig_caption: yes
+bookdown::html_document2:
+  css: style.css
+  includes:
+    in_header: preamble.html
+bookdown::pdf_book:
+  includes:
+    in_header: preamble.tex
+  latex_engine: xelatex
+  citation_package: natbib
+  keep_tex: yes
+  fig_caption: yes
+bookdown::gitbook:
+  css: style.css
+  includes:
+    in_header: preamble.html
+bookdown::epub_book: default

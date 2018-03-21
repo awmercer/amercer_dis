@@ -1,0 +1,369 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# Doubly-robust inference for nonprobability surveys with BART {#ch4}
+\chaptermark{Doubly-robust inference}
+
+```{r, include=FALSE} 
+library(knitr)
+library(kableExtra)
+knitr::opts_chunk$set(cache=TRUE, cache.path = 'cache/04-dr_estimation', warning = FALSE, message=FALSE, results="hide", fig.path = 'figures/04-dr_estimation')
+
+source("code/dr_estimation_data_prep.R")
+```
+In Chapter \@ref(ch2), we described a variety of methods for correcting selection bias in nonprobability samples, all of which depend on an assumption of strong ignorability [@rosenbaum1983a]. All of these methods involve the creation of a statistical model that induces conditional independence between survey outcomes and inclusion in the sample, although they go about it in different ways. Some, such as propensity weighting and sample matching, do this by modeling the probability of inclusion in the sample [@lee2006; @rivers2007; @rivers2009; @valliant2011]. Others, such as calibration methods and multilevel regression and poststratification (MRP) do this by modeling the outcome variable [@ghitza2013; @park2004]. @elliott2017 describe these two approaches as quasi-randomization and superpopulation inference respectively. Doubly-robust estimation constitutes a third approach. Doubly-robust estimation involves fitting both a propensity model and an outcome regression model and requires that only one or the other be correctly specified to produce consistent population estimates [@bang2005; @kang2007; @robins1994]. 
+
+In this chapter, we compare two approaches to doubly-robust estimation to singly-robust estimation using propensity weighting (PW) and outcome regression (OR). The specific doubly-robust estimators are outcome regression with residiaul bias correction (OR-RBC) and outcome regression with a propensity score covariate (OR-PSC). Each of these is described in detail in Section \@ref(ch4-methods). As in Chapter \@ref(ch3), we use Bayesian additive regression trees (BART) to construct all four of these estimators [@chipman2010]. For details on the BART algorithm see Chapter 3, Section \@ref(ch3-modeling).
+
+For online nonprobability samples, doubly-robust estimation has an intuitive appeal. Given the general lack of visibility into the recruitment and sampling process, having two chances to correctly specify a model seems like a potentially useful hedge against the inherrent uncertainty about the selection mechanism. That said, there are disadvantages as well. A doubly-robust estimator will usually be less efficient than a correctly specified estimate based on outcome regression. @bang2005 suggest that additional bias robustness is worth some loss of efficiency given that all models are likely to suffer from some degree of misspecification. In contrast, @kang2007 evaluated a variety of different doubly-robust estimators and found that when both models were misspecified, a singly-robust estimate based only on outcome regression had lower bias and root mean squared error (RMSE) than all of the doubly-robust alternatives. In his commentary, @tan2007 demonstrated that this finding is by no means universal and the relative performance of singly or doubly-robust estimators will vary depending on the situation and the specific estmator.
+
+The findings of both @bang2005 and @kang2007 are based on simulations. In practice, researchers will rarely have the necessary information required to determine the optimal type of estimator. For online nonprobability surveys, there is some empirical evidence that doubly-robust estimation may be more helpful than not. Studies comparing propensity weighting to other techniques have generally found it to be less effective than calibration for reducing bias on a variety of benchmarks. However, a first-stage propensity adjustment followed by a second stage of calibration does appear to yield somewhat more bias reduction than calibration on its own [@dutwin2017; @mercer2018]. @brick2015 described this as a compositional approach and showed that it is a form of doubly-robust estimation. @lee2009 proposed a similar two-stage procedure but did not describe it in terms of double-robustness. 
+
+These empirical studies and the aforementioned simulations all rely on parametric linear models for both propensity and outcome estimation. This means that a failure to correctly capture interactions or nonlinearities in either the outcome or propensity models remains a potential source of error in addition to ommitted confounders or lack of common support. The partial exception is the study by @mercer2018 which used random forests, a tree-based machine learning algorithm, to estimate propensity scores [@breiman2001]. 
+
+Such flexible machine learning algorithms are appealing in that they can automatically detect interactions and nonlinearities, and readily accommodate a large number of covariates. For outcome regression, a number of studies have found BART performs particularly well in a variety of applications including imputation [@tan2018; @xu2016], estimating causal effects [@green2012; @hill2011; @hill2011a], and generalizing from experimental samples to target populations [@kern2016]. Tree-based methods such as random forests and boosted regression trees have been found to be effective for the purpose of estimating propensity scores [@buskirk2015; @kern2016; @lee2010; @mccaffrey2004]. We are aware of only one study to use BART for propensity weighting. It found that propensity scores estimated with BART were less variable than scores estimated using any of boosted regression trees, logit, and probit regression. At the same time, the propensity weights estimated with BART also produced better covariate balance than the alternatives. Even so, the same study found that an outcome regression model using BART was preferable to estimates based on propensity scores [@hill2011a].
+
+In a simulation study focused on imputation of missing data, @tan2018 used BART to extend two doubly-robust estimators: augmented inverse probability weighting (AIPW) [@robins1994] and penalized spline of propensity prediction (PSPP) [@zhang2009]. They found that estimators that replaced linear propensity and outcome models with BART, which they called AIPW with BART and BARTps respectively, generally resulted in estimates with lower bias and RMSE than standard AIPW and PSPP when both models were misspecified. The added robustness came with only a minimal loss of efficiency relative to linear models when both outcome and propensity models were correctly specified. BARTps proved the most effective method under dual misspecificaiton when the mean and propensity functions involved complex nonlinearities and interactions. An estimator based only on outcome regression with BART was close to but not quite as robust as BARTps. The authors did not evaluate a pure propensity weighting estimator. 
+
+In this chapter, we assess whether doubly-robust estimation with BART can be similarily useful for online nonprobability surveys and measure the extent to which the resulting estimates differ from singly-robust approaches based purely on propensity scores or prediction. Because all of our estimators rely on BART, we adopt a different naming scheme from that used by @tan2018. We compare estimates produced using propensity weighting (PW), outcome regression (OR), and two doubly-robust estimators. The first is OR estimation with a residual bias correction (OR-RBC) in which the mean of propensity weighted residuals is added to the OR estimate similar to an AIPW estimator [@kang2007; @robins1994]. The second is an outcome regression estimator that includes the propensity score as a covariate (OR-PSC) similar to the BARTps estimator from @tan2018. 
+
+We compare the performance of these estimators for six binary measures of civic engagement taken from the 2013 Current Population Survey (CPS) Civic Engagement Supplement. The estimates are calculated using 10 different nonprobability surveys commissioned by Pew Research Center in 2015. In the previous chapter, we demonstrated that these items suffer from nonignorable selection bias conditional on demographics. Consequently, we do not expect any of these methods to produce entirely unbiased estimates. Instead, we wish to see if any of these approaches produces consistently superior results in terms of bias, variance, and mean squared error across a diverse set of samples from different vendors on a set of outcomes that, while focused on the topic of civic engagement, serve as exemplars of the kind of problems that can occur in practice.
+
+This chapter proceeds as follows: in section \@ref(ch4-methods), we describe each of these estimators in detail and consider their advantages and disadvantages when exchangeability and positivity assumptions are violated. In section \@ref(ch4-results), we compare the performace of each estimator with respect to bias, variance, and root mean squared error (RMSE) for five measures of civic engagement on 10 different nonprobability samples. In section \@ref(ch4-discussion) we discuss the extent to which these results may generalize to other situations and conclude with suggestions for future research.
+
+## Alternative approaches to nonprobability survey inference {#ch4-methods}
+\sectionmark{Alternative approaches to inference}
+ 
+Each of the estimators considered in this study requires unit level microdata that reflects the true joint distribution of the covariates to be used in estimation. As in Chapter \@ref(ch3), we use the 2013 CPS Civic Engagement Supplement microdata as a reference dataset that is assumed to accurately reflect the true population distribution for sex, age, race and Hispanic ethnicity, educational attainment, and the Census Bureau's administrative region for U.S. adults ages 18 or older. Because BART is not compatible with the complex sample design features of the CPS, we the same finite population Bayesian bootstrap (FPBB) procedure as in Chapter 3, Section \@ref(ch3-modeling) to create a synthetic population based on the weighted distribution of observations in the reference sample [@cohen1997; @dong2014; @ghosh1997; @zhou2016]. 
+
+Beyond "undoing" the survey weights, the FPBB can also permit us to account for the CPS's complex design in measures of uncertainty for the nonprobability estimates. Although @dong2014 and @zhou2016 describe FPBB methods that account for clustering and stratification in addition to unequal weights, these techniques require the original cluster and strata variables, which are not available for CPS public use data. Instead, we treat the CPS reference sample as if it were a single stage survey with unequal probabilities of selection. 
+
+In most applications, one would create a large number of synthetic populations to capture the sampling variance associated with the complex design. This is of particular importance when the synthetic populations are to be used for primary analysis as described by @dong2014 or for multiple imputation as in @zhou2016. In this case, some experimentation demonstrated that measures of variability were almost entirely unaffected by the use of multiple synthetic populations. This is likely due to the large sample size of the reference sample (27,566 adults) both in absolute terms and relative to the nonprobability samples which have sample sizes of approximately 1,000. This is similar to the situation that arises when ignoring the additional variance attributable to the use of estimated control totals in calibration weighting. This added variance is generally minimal when the estimated control totals are very precise and the benchmark sample is many times larger than the analytic sample [@dever2016]. Therefore, for ease of explanation we present results using only a single synthetic population.   
+
+To create the synthetic population, we follow the procedure described by @dong2014 using the CPS supplement as the reference sample. First, the weights for each observation are scaled so that they sum to the sample size (as opposed to the population size as is the case for most government surveys). Next, we resample a total of $N - n_r$ observations from the reference sample using a weighted Pólya urn scheme, where $N$ is the size of the full target population and $n_r$ is the size of the CPS sample. In practice, the size of the synthetic population only needs to be many times larger than the reference sample. In this case, we create a synthetic population that is 100 times larger than the original CPS dataset. These resampled units are then combined with the original $n_r$ units to create a synthetic population of size $N$. Effectively, this procedure is imputing the $N - n_r$ unobserved units in the population based on a posterior predictive distribution generated from the weighted reference sample.
+
+For the purposes of this study we proceed as if this synthetic population reflects the true population distribution for both the outcome variables and the demographic covariates. It is important to note that the synthetic population is itself derived from a survey and as such suffers from sampling, nonresponse, and other survey errors. As a result, the measures of bias discussed in subsequent sections of this chapter are most appropriately understood as approximations.
+
+For the remainder of this analysis, we will refer to the synthetic reference population size as $N$ with reference units indexed with $j = 1 \ldots N$, and the survey sample size as $n$ with survey respondents indexed as $i = 1 \ldots n$. Let $\bar{Y}$ be the synthetic population mean for outcome variable $Y$ which we asume to be the true population value, and $\bar{y}$ denote a sample estimate.
+
+### Quasi-randomization inference with propensity weighting
+Quasi-randomization inference assumes that each unit $i$ in the target population has an unknown, nonzero probability of inclusion in the sample denoted $\pi_i$. If $\pi_i$ were known, then weighting each case in the sample by its inverse would correct any selection bias. Because $\pi_i$ is unknown, we rely on an estimate based on a statistical model denoted $\hat{\pi}_i$ [@elliott2017]. 
+
+The most common concern with propensity weighting is the possibility of a few cases having extremely large weights which can result in highly unstable estimates. This can occur when there is a high degree of covariate imbalance between the reference and survey samples, even if strong ignorability holds. When the positivity assumption is violated the result is not only extreme weights and large variance but also bias as the weights will not be capable of producing covariate balance [@cole2008].
+
+Variable selection for propensity weighting is of particular importance. If variables in the model are strongly correlated with inclusion but not the outcome, the best case result will be an increase in variance without any bias reduction. However if there are ommitted confounders associated with both inclusion and the outcome, weighting on variables that are only predictive of inclusion can magnify confounding bias considerably [@kreuter2011; @myers2011; @pearl2010a]. Therefore, simply selecting variables that are strongly predictive of inclusion without consideration of their asociation with the outcome can backfire. If there are no ommitted confounders and the weighting variables are strongly correlated with both inclusion and the outcome variable, the result can be a decrease in both bias and variance [@little2005]. 
+
+Studies comparing propensity weighting to other techniques have generally found that for reducing bias in nonprobability surveys, it performs no better and often worse than calibration given the same set of covariates [@dutwin2017; @mercer2018; @valliant2011]. There is some evidence that a first-stage propensity adjustment followed by a second stage of calibration can yield somewhat more bias reduction than calibration on its own [@dutwin2017; @mercer2018]. @brick2015 described this as a compositional approach and shows that it is a form of doubly-robust estimation. @lee2009 proposed a similar two-stage procedure though did not describe it in terms of double-robustness. 
+
+Here, we estimate response propensities by combining the observations from the nonprobability sample with those in the synthetic population and using BART to estimate the function $\hat{\pi}_i = g\left(x_i\right)$, where $x_i$ is the vector of demographic covariates measured on each unit in both the reference and opt-in samples.
+
+Rather than use all of the observations in the synthetic population, we take a subsample with the same number of observations as the opt-in sample. The subsampling serves two purposes. First, because the synthetic populations of size N may be quite large, subsampling reduces the computational burden considerably. More importantly, having an equal number of population and sampled units greatly improves the performance of many machine learning methods used to estimate the propensity scores [@wallace2011]. 
+
+Because the propensities are estimated relative to an equal sized subsample from the synthetic population, the weights are calculated based on the odds of the propensity score rather than its inverse:
+
+\begin{equation}
+w_i = \frac{1-\hat{\pi}_i}{\hat{\pi}_i}.
+\end{equation}
+
+Weighting by the odds in this way treats the covariate distribution in the reference sample as the "correct" distribution and attempts to mirror that distribution in the nonprobability sample [@hirano2003; @schonlau2007]. The more familiar approach of weighting by the inverse attempts to reproduce the covariate distribution for the union of the nonprobability and reference samples which is not generally the desired outcome.
+
+For making inferences about the posterior distribution of propensity weighted estimates, we adopt a procedure for Bayesian propensity score estimation similar to that of @kaplan2012. They propose creating $M$ sets of propensity weights based on the posterior predictive distribution of the propensity model and then aggregating the $M$ weighted point and variance estimates to capture the variance associated with both the propensity model and the estimated quanity. To account for uncertainty attributable to the fact that the propensities are estimated, we take $m = 1 \ldots M$ draws of $\hat{\pi}_{im}$ from the posterior distribution distribution for $\hat{\pi}_i$ returned by BART and create $M$ sets of propensity weights. To account for the sampling variance that would be implied by the differential inclusion probabilities, we apply a weighted finite population Bayesian bootstrap to create $b = 1 \ldots B$ synthetic populations of size $N^*$ for each set of propensity weights [@dong2014]. Because the focus here is on estimating proportions, we convert each of these synthetic populations into a set of frequency weights where each unit's weight $w^*_{imb}$ is equal to the number of times that unit was selected for synthetic population $mb$. 
+
+For each propensity weighted synthetic population 
+\begin{equation}
+\bar{y}^{\left(pw\right)}_{mb} = {\frac{{\sum\limits_{i = 1}^n {w_{imb}^*{y_i}} }}{{{N^*}}}}
+\end{equation}
+
+and we treat the set of $MB$ estimates of $\bar{y}^{\left(pw\right)}_{mb}$ as an approximation to the posterior distribution of $\bar{y}^{\left(pw\right)}$. 
+
+### Superpopulation inference with outcome regression
+Whereas quasi-randomization relies on a statistical model to predict sample inclusion, superpopulation inference relies on a statistical model for the outcome $Y$. The model is then used to predict values for the unobserved units in the population. The frequentist theory behind this approach is detailed by @valliant2000. The Bayesian version of this approach, which relies on a prior distribution rather than a hypothetical superopolation, has been described in several papers by Rod Little [see @little2004; @little2007; @little2012; @little2015]. 
+
+When ignorability requirements do not hold, error manifests differently for estimates based on outcome regression. When positivity is violated, predictions from a model based on the survey sample may not generalize to units in the population with no representation in the sample. Unlike propensity weighting, where a lack of common support will result in large weights or a failure to balance covariates, outcome regression will not give any signs that anything is wrong. On the other hand, if the model does correctly generalize to the non-covered portion of the population, then this approach can produce efficient, unbiased estimates when propensity weighting would at best be highly variable and at worst both biased and variable. One attractive feature of BART is the fact posterior predictive intervals are automatically wider for units with poor representation in the survey sample, dynamically inflating measures of uncertainty if there are a large number of such units in the population. @hill2013 proposed taking advantage of this feature to detect violations of common support in causal inference questions, and it is possible that a similar approach could be adapted for survey estimation.
+
+If there are confounding variables associated with both the outcome and selection that are not accounted for in the model, the associations between the model covariates and the outcome may differ from the associations that would be observed for the whole population. For example, if the young people in a sample are more liberal than young people in the overall population, but a measure of ideology is ommitted from the model, the predicted values for young people will reflect this liberal bias. This in turn will carry through to the estimated quantity. 
+
+As a result, simply selecting variables that are highly predictive of the outcome in the sample can lead to bias if the strength of the association is an artifact of confounding. It is possible that when used for outcome regression with nonprobability samples, machine learning methods such as BART will fit models that are maximally predictive of the outcome in the sample in ways that do not generalize to the larger population.
+
+Here we use BART to estimate $\hat{y}_i = f\left(x_i\right)$ using the units in the nonprobability sample. Next, we use this model to generate $M$ posterior draws of the predicted $\hat{y}_{im}$ for each unit in the reference population. For each set of predicted values $m$
+
+\begin{equation}
+\bar{y}^{\left(or\right)}_m = \frac{{\sum\limits_{j=1}^N {{{\hat y}_{jm}}} }}{N},
+\end{equation}
+
+and these $M$ estimates reflect the posterior distribution for $\bar{y}^{\left(or\right)}$.  Note that in this case, the nonprobability sample is only used to estimate the conditional distribution $\Pr\left(Y \mid X\right)$, and we rely exclusively on the synthetic population for the marginal distribution $\Pr\left(X\right)$. 
+
+### Doubly-robust inference
+
+#### Outcome regression with residual bias correction {-}
+
+Perhaps the most basic doubly-robust estimator is the AIPW of @robins1994. Because the propensity weights used in this study are based on the odds rather than the inverse of the propensity, we refer to this estimator as OR-RBC using the more general terminology proposed by @kang2007. This type of estimator is closely related to model-assisted estimators for probability-based surveys [@sarndal1992] which have been readily adapted to incorporate machine learning approaches to prediction [@breidt2017]. 
+
+The OR-RBC estimator is simply the basic OR estimator described above plus the mean of propensity weighted residuals from the nonprobability sample. Because we have $M$ draws of $\bar{y}^{\left(or\right)}_m$ but $MB$ sets of weights $w^*_{mb}$, we approximate the posterior distribution of $\bar{y}^{\left(rbc\right)}$ by calculating 
+
+\begin{equation}
+\bar{y}^{\left(rbc\right)}_{mb} = \bar{y}^{\left(or\right)}_m + \frac{{\sum\limits_{i = 1}^n {{w^*_{imb}}\left( {{y_i} - {{\hat y}_{im}}} \right)} }}{N^*}.
+\end{equation}
+
+Thus for each of the $M$ instances of $\bar{y}^{\left(or\right)}_m$ there we calculate the second term $B$ times for a total of $MB$ posterior draws.
+
+Because the propensity weights are based on the odds of $\hat{\pi}$ rather than its inverse, this is a bias-corrected estimate for the synthetic population mean. In a survey nonresponse setting, this estimator is described by @kang2007 [p. 532] as a bias-corrected estimate of the nonrespondent mean. It is doubly-robust in the sense that if the outcome model is correct, then the second term will equal $0$ in expectation. If the outcome model is incorrect but the propensity model is correct, then the second term is equivalent in expectation to $\bar{Y} - \bar{y}^{\left(or\right)}$, thus negating any bias in $\bar{y}^{\left(or\right)}$. 
+
+#### Outcome regression with a propensity score covariate {-}
+
+This approach is an extension of the PSPP model in which a penalized spline of the propensity score is included in an outcome regression model along with the model covariates [@little2004a; @zhang2009]. A variant of this approach, which used piecewise constant coefficients for a binned propensity score in place of a spline, was found by @kang2007 to be more robust under dual-misspecification than the other doubly-robust estimators in their study. 
+
+This version, also described as BARTps by @tan2018 involves first fitting the propensity model with BART as before and then including the posterior mean propensity score as a covariate in the outcome regression model such that $\tilde{y}_i = f\left(x_i, \hat{\pi}_i\right)$. The estimate for the population mean is then the same as for the basic OR estimate but substituting $\tilde{y}$ for $\hat{y}$ for each unit in the synthetic population
+
+\begin{equation}
+\bar{y}^{\left(psc\right)}_m = \frac{{\sum\limits_{j=1}^N {{{\tilde y}_{jm}}} }}{N}
+\end{equation}
+
+and make posterior inferences over the $M$ values of $\bar{y}^{\left(psc\right)}_m$.
+
+
+
+## Results {#ch4-results}
+For each of the 10 online nonprobability samples, we estimate the population percentage for six measures of civic engagement using each of these four estimators. We set the number of posterior draws $M = 1000$, and to keep computation manageable, we set $N^* = 20 \times n$ and set $B = 25$. For purposes of comparison, we also include an unweighted estimate of each population percentage, and estimate its variance using a standard Bayesian bootstrap [@rubin1981]. Thus, for the unweighted, OR, and OR-PSC estimates we have a total of $M = 1000$ posterior draws for each estimate of $\bar{y}$, while for PW and OR-RBC we have  $M \times B = 1000 \times 25 = 25000$. We compare each estimator with respect to absolute bias, posterior variance, and root mean squared error (RMSE). 
+
+The code used to fit these models and generate the posterior draws for each estimate can be found in Appendix \@ref(ap-code).
+
+```{r avgperf, eval=TRUE, echo=FALSE, include=TRUE, results='asis'}
+pos_summary %>% 
+ rename(Estimator = est) %>%
+  mutate(Estimator = fct_relevel(Estimator, "Unweighted")) %>%
+   group_by(Estimator) %>%
+   summarise("Avg. Absolute Bias" = mean(abs(bias)),
+             "Avg. Posterior Var." = mean(pos_var),
+             "Avg. RMSE" = mean(rmse)) %>% 
+   kable(digits = 1, booktabs = TRUE,
+         caption = "Average estimator performance on bias, variance, and RMSE.") %>%
+  footnote("Estimates are averaged over all 10 samples and six outcome variables.")
+
+
+
+```
+
+Table \@ref(tab:avgperf) displays the measures of performance averaged over all samples and outcome variables. Because all of the estimates are percentages, and the measures are on common scales, we simply average them without additional standardization. While the unweighted estimates have the lowest average variance, all of the modeled estimates are preferable in terms of both bias and RMSE. With respect to bias and RMSE, all of the methods are preferable to unweighted estimates. In contrast to  @tan2018 we see that the OR-RBC estimator (similar to their AIPW with BART estimator) has the lowest bias, variance, and RMSE on average, while OR-PSC (analogous to their BARTps) has the highest. PW performs nearly as well as OR-RBC on all three measures. Likewise, OR-PSC has slightly higher variance than OR, but does not offer any added benefit with respect to bias.
+
+```{r abs-bias, echo=FALSE, fig.height=8, fig.width=6.5, fig.cap="Absolute bias by sample and outcome variable. Estimates are presented on a percentage point scale. Samples are ordered by unweighted average absolute bias across all six outcome variables. Outcome variables are ordered by unweighted average absolute bias across all 10 samples." }
+
+bias_avgs = pos_summary %>%
+  group_by(sample_id_ordered, est) %>%
+  summarise(abs_bias = mean(abs(bias)),
+            unwt_bias = Inf) %>%
+  mutate(y_var_ordered = "Sample Avg.")
+
+df = pos_summary %>%
+  bind_rows(bias_avgs) %>%
+  mutate(y_var_ordered = fct_reorder(y_var_ordered, abs(unwt_bias)))
+
+breaks <- levels(df$y_var_ordered)
+labels <- as.expression(breaks)
+labels[[7]] <- bquote(bolditalic(.(labels[[7]])))
+
+df %>%
+  ggplot(aes(y = abs_bias, 
+             x = y_var_ordered, 
+             color = est,
+             shape = est,
+             size = est,
+             alpha = est)) +
+  facet_wrap(~sample_id_ordered, ncol = 2) +
+  geom_point(stroke = .8, 
+            size = 1.5) +
+  theme_bw() +
+  scale_shape_manual(name = "Estimate", values = c(19, 0, 1, 2, 5)) +
+  scale_size_manual(name = "Estimate", values = c(1, 1, 1, 1, 1)) +
+  scale_alpha_manual(name = "Estimate", values = c(.4, .8, .8, .8, .8)) +
+  scale_color_manual(name = "Estimate", values = est_colors) +
+  scale_y_continuous("Absolute bias") +
+  scale_x_discrete(label = labels, breaks = breaks) +
+  coord_flip() +
+  theme(axis.title.y = element_blank(), 
+        legend.position = "bottom")
+
+# Number of items where the lowest bias is the unweighted
+min_bias_unweighted = pos_summary %>% 
+  group_by(y_var, sample_id) %>%
+  arrange(abs(bias)) %>%
+  slice(1) %>%
+  ungroup() %>%
+  summarise(sum(est == "Unweighted")) %>% as.numeric()
+
+
+```
+
+When broken out by sample and outcome variable, a more complex picture emerges. Figure \@ref(fig:abs-bias) shows the absolute bias for each estimate broken out by sample and outcome variable. For none of the samples is it the case that a particular estimator is always preferable. The closest is sample E where the lowest bias always belongs to either OR-RBC or PW, both of which reduce bias relative to no adjustment. For sample I, which has the lowest average unweighted bias to begin with, nearly all of the options increase bias relative to doing nothing. More typically, the option with the least bias varies by outcome. Of all 60 items, the unweighted estimate has the lowest bias for `r min_bias_unweighted`.
+
+
+
+```{r change-in-bias, echo=FALSE, fig.height=5, fig.width=6.5, fig.cap="Change in absolute bias relative to unweighted. Estimates are presented on a percentage point scale. Samples are ordered by unweighted average absolute bias across all six outcome variables. Outcome variables are ordered by unweighted average absolute bias across all 10 samples."}
+
+change_bias_avgs = pos_summary %>%
+  filter(est != "Unweighted") %>%
+  group_by(y_var_ordered, est) %>%
+  summarise(change_abs_bias = mean(change_abs_bias),
+            unwt_bias = Inf) %>%
+  mutate(sample_id_ordered = "Variable Avg.")
+
+df = pos_summary %>%
+  filter(est != "Unweighted") %>%
+  bind_rows(change_bias_avgs) %>%
+  mutate(sample_id_ordered = fct_reorder(sample_id_ordered, abs(unwt_bias)))
+
+breaks <- levels(df$sample_id_ordered)
+labels <- as.expression(breaks)
+labels[[11]] <- bquote(bolditalic(.(labels[[11]])))
+
+df %>%
+  mutate(est_ordered = fct_reorder(est, abs(bias))) %>%
+  ggplot(aes(y = change_abs_bias, 
+             x = sample_id_ordered, 
+             color = est, 
+             size = est, 
+             shape = est, 
+             alpha = est)) +
+  facet_wrap(~y_var_ordered, ncol = 3) +
+  geom_hline(yintercept = 0, linetype = "dotted", alpha = .5) +
+  geom_point(stroke = .8, 
+            size = 1.5) +
+  theme_bw() +
+  coord_flip() +
+  theme(axis.title.y = element_blank(),
+        legend.position = "bottom") +
+  scale_y_continuous("Change in absolute bias vs. Unweighted") +
+  scale_shape_manual(name = "Estimate", values = c(0, 1, 2, 5)) +
+  scale_size_manual(name = "Estimate", values = c(1, 1, 1, 1)) +
+  scale_alpha_manual(name = "Estimate", values = c(.8, .8, .8, .8)) +
+  scale_color_manual(name = "Estimate", values = est_colors[2:5]) +
+  scale_x_discrete(label = labels, breaks = breaks)
+
+```
+
+Figure \@ref(fig:change-in-bias) presents the same information somewhat differently. It shows the change in absolute bias relative to no weighting. Several patterns become clear. Overall, PW and OR-RBC tend to produce very similar estimates, and with few exceptions, one or the other is most often the estimate with the lowest bias. When there is bias reduction, OR-RBC almost always performs somewhat better than PW. When there is bias amplification, PW tends to perform somewhat better. The same does not appear to hold for OR and OR-PSC. The differences between the two tend to be smaller and their relative performance is not clearly related to the presence of bias reduction or amplification. 
+
+The exceptions to this pattern are also notable. For trusting neighbors, OR and OR-PSC both consistently outperform PW and OR-RBC across samples with respect to bias, even if only slightly in some samples. Additionally, OR and OR-PSC do well on the Mechanical Turk sample when others do not, particularly on talking to neighbors and voting in local elections. The Mechanical Turk sample is not a traditional survey sample and did not employ any sort of quotas or other demographic controls during data collection. Additionally, if we follow the same procedure as [Chapter 3](#eq:phi) and define the covered region of common support as those units in the synthetic population with a propensity score higher than the minimum score in the survey sample, the coverage rate for Mechanical Turk is only 88% [@dehejia1999]. The other samples all have estimated coverage rates between 96% and 100%. It is likely that this lower common support contributes to the worse performance for PW and OR-RBC in the Mechanical Turk sample.
+
+
+```{r pos-deff, echo=FALSE, fig.height=8, fig.width=6.5, fig.cap="Design effect of four estimators relative to unweighted. The design effect is the ratio of the estimate's posterior variance to the unweighted posterior variance. Samples are ordered by the average design effect across all six outcome variables. Outcome variables are ordered by the average design effect across all 10 samples."}
+
+deff_avgs = pos_summary %>%
+    filter(est != "Unweighted") %>%
+  group_by(sample_id_ordered, est) %>%
+  summarise(deff = mean(deff),
+            mean_samp_deff = Inf) %>%
+  mutate(y_var_ordered = "Sample Avg.")
+
+df = pos_summary %>%
+  filter(est != "Unweighted") %>%
+  group_by(sample_id_ordered) %>%
+  mutate(mean_samp_deff = mean(deff)) %>%
+  group_by(y_var_ordered) %>%
+  mutate(mean_y_var_deff = mean(deff)) %>%
+  ungroup() %>%
+  bind_rows(deff_avgs) %>%
+  mutate(y_var_ordered = fct_reorder(y_var_ordered, mean_y_var_deff),
+         sample_id_ordered = fct_reorder(sample_id_ordered, mean_samp_deff)) %>%
+  ungroup()
+
+breaks <- levels(df$y_var_ordered)
+labels <- as.expression(breaks)
+labels[[7]] <- bquote(bolditalic(.(labels[[7]])))
+
+
+
+df %>%
+  ggplot(aes(y = deff, 
+             x = y_var_ordered, 
+             color = est,
+             shape = est,
+             size = est, 
+             alpha = est)) +
+  facet_wrap(~sample_id_ordered, ncol = 2) +
+  geom_point(stroke = .8, 
+            size = 1.5) +
+  theme_bw() +
+    geom_hline(yintercept = 1, linetype = "dotted", alpha = .5) +
+  scale_shape_manual(name = "Estimate", values = c(0, 1, 2, 5)) +
+  scale_size_manual(name = "Estimate", values = c(1, 1, 1, 1)) +
+  scale_alpha_manual(name = "Estimate", values = c(.8, .8, .8, .8)) +
+  scale_color_manual(name = "Estimate", values = est_colors[2:5]) +
+  scale_y_continuous("Variance inflation relative to unweighted") +
+  coord_flip() +
+  theme(axis.title.y = element_blank(), 
+        legend.position = "bottom") +
+    scale_x_discrete(label = labels, breaks = breaks)
+
+  
+  
+```
+
+Figure \@ref(fig:pos-deff) shows the design effect (_deff_) for each estimate relative to the unweighted estimate. The design effect is equal to the posterior variance for the estimate divided by the unweighted posterior variance. While the rank ordering of the estimators with respect to design effect is mostly consistent across samples with OR-RBC the lowest followed by PW, OR and OR-PSC, the magnitude of the differences between the estimators clearly depends on the sample. In particular, the deffs for OR and OR-PSC varies to a much greater degree than OR-RBC and PW. For example, the average deff over the six variables for OR-RBC is under 1.5 for all but two samples and only rises as high as 2.1 for Mechanical Turk. For OR-PSC, only three samples are under 1.5, four are over 2, with Mechanical Turk at 3.7. The patterns for PW and OR are similar but less extreme, with PW closer to OR-RBC and OR closer to OR-PSC. Once again, Mechanical Turk is notably different from the other samples, having the highest average deff for all four estimators.
+
+
+```{r rmse, echo=FALSE, fig.height=5, fig.width=5, fig.cap="RMSE vs. absolute bias for all variables, estimators, and and samples. Estimates are presented on a percentage point scale. The enlarged and highlighted points are the Mechanical Turk estimates for frequency of talking to neighbors. They illustrate an instance where bias was largely eliminated with OR and OR-PSC but RMSE remained high."}
+library(ggrepel)
+mtk_selected = pos_summary %>%
+  filter(sample_id == "MTk" & est %in% c("OR", "OR-PSC", "PW", "OR-RBC") & y_var == "Talk neighbors") %>%
+  mutate(mtk_label = sprintf("MTk\n%s", est))
+
+pos_summary %>%
+  filter(!(sample_id == "MTk" & est %in% c("OR", "OR-PSC", "PW", "OR-RBC") & y_var == "Talk neighbors")) %>%
+  filter(est != "Unweighted") %>%
+  ungroup() %>%
+  ggplot(aes(y = rmse, 
+             x = abs(bias)
+             )) +
+  geom_abline(linetype = "dotted", alpha = .5) +
+  geom_point(aes(color = est,
+             shape = est,
+             size = est), 
+             stroke = .8, 
+             size = 1.5,
+             alpha = .4) +
+  theme_bw() +
+  scale_shape_manual(name = "Estimate", values = c(0, 1, 2, 5)) +
+  scale_size_manual(name = "Estimate", values = c(1, 1, 1, 1, 1)) +
+  scale_color_manual(name = "Estimate", values = est_colors[2:5]) +
+  scale_fill_manual(values = est_colors[2:5], guide = 'none') +
+  scale_y_continuous("RMSE") +
+  scale_x_continuous("Absolute bias") +
+  theme(legend.position = "bottom") +
+  coord_fixed() + 
+    geom_point(aes(color = est,
+             shape = est,
+             size = est), 
+             stroke = 1.5, 
+             size = 2,
+             alpha = 1, data = mtk_selected) 
+```
+
+In terms of overall error, figure \@ref(fig:rmse) makes clear that RMSE is almost entirely a function of bias. Because bias is generally so large for these items, error from estimates that fall higher or lower than the posterior mean largely cancel out. There are a few exceptions such as frequency of talking to neighbors in the Mechanical Turk sample where OR and OR-PSC successfully eliminated nearly all of the bias but the relatively high variance no longer cancels. The resulting RMSE is actually slightly higher than the more biased estimates based on PW and OR-RBC. These sorts of exceptions only occur in instances where the bias was relatively low to begin with.  
+
+
+## Discussion {#ch4-discussion}
+In this chapter we have compared the performance of four approaches to estimation in nonprobability surveys using BART: singly-robust PW and OR and doubly-robust OR-RBC and OR-PSC. As expected, given the high degree of nonignorable selection bias, none of the methods was entirely successful at eliminating bias. Overall, OR-RBC tended to perform best with respect to bias, variance, and RMSE, although PW performed nearly as well. Given that OR-RBC requires an outcome model for each variable while a single set of propensity weights can be used for for multiple variables, it would be reasonable to weigh the added analytical complexity of the doubly-robust estimator against the modest improvement it yielded over PW alone. OR and OR-PSC also performed similarly and tended to exhibit higher bias. 
+
+```{r echo = FALSE}
+pct_inflating_bias = pos_summary %>% group_by(est) %>% summarise(change_positive = sum(change_abs_bias > 0))
+pw_infl = pct_inflating_bias %>% filter(est == "PW") %>% pull("change_positive")
+or_infl = pct_inflating_bias %>% filter(est == "OR") %>% pull("change_positive")
+orrbc_infl = pct_inflating_bias %>% filter(est == "OR-RBC") %>% pull("change_positive")
+orpsc_infl = pct_inflating_bias %>% filter(est == "OR-PSC") %>% pull("change_positive")
+```
+
+In particular, it would seem that OR and OR-PSC had a greater tendency to inflate bias than PW and OR-RBC. Both OR and OR-PSC resulted in higher bias for `r or_infl` out of 60 estimates across the samples. This is in contrast to `r pw_infl` and `r orrbc_infl` for PW and OR-RBC respectively. Additionally, while OR and OR-PSC produced point estimates that were nearly identical, OR-PSC had consistently higher variance and RMSE.
+
+The differences between the relative performance of the two singly-robust estimators is surprising given PW's relatively poor showing in other studies [e.g. @dutwin2017; @mercer2018; @valliant2011]. While the differences were not usually large, often less than a percentage point, they were consistent across samples and outcome variables (with the important exceptions of Mechanical Turk and trust in neighbors). One possible explanation is that BART (and likely other machine learning algorithms) fit models that are very well tuned for the sample but reflect a spurious conditional distribution for $X$ when exchangeability does not hold. The better performance of calibration methods relative to propensity weighting in other studies may be due to the fact that their comparatively simple functional forms serve to prevent this kind of overfitting. 
+
+The differences between the two doubly-robust estimators was similarly notable. The relatively high variance of both OR and OR-PSC suggests that the demographic covariates used in this analysis not highly predictive of the outcomes. Given that the propensity score is in a sense a univariate summary of the covariate distribution, it is perhaps not surprising that its inclusion as a covariate added little information to the basic OR estimator given BART's already powerful ability to approximate $\Pr\left(Y \mid X\right)$. In contrast, the OR-RBC involves greater separation between the propensity scores and the outcome regression model. In the presence of confounding, the propensity weights and outcome regression may be more successful at offsetting each other's weaknesses.  
+
+Additional research comparing singly and doubly-robust estimators using different combinations of more and less complex outcome and propensity models would be greatly beneficial. In particular, additional evaluation of model performance in the presence of exchangeability violations seems particularly important, and should be done using both simulated and real survey data. In this study, we saw that the usual patterns of estimator performance were largely reversed, likely due to the lack of exchangeability for the civic engagement measures that we identified in Chapter 3. These patterns may not hold for other variables with different confounders, but some degree of confounding is likely to be the norm for nonprobability survey samples. A fuller understanding of its impact on different estimation approaches may go a long way toward the improving the quality of survey estimates under less than ideal conditions.
+
+
+
+

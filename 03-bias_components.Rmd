@@ -1,0 +1,420 @@
+
+
+# Decomposing selection bias in nonprobability surveys {#ch3}
+\chaptermark{Decomposing Selection Bias}
+
+```{r, include=FALSE} 
+library(knitr)
+knitr::opts_chunk$set(cache=TRUE, cache.path = 'cache/03-bias_components', message=FALSE, echo=FALSE, results="hide", fig.path = 'figures/03-bias_components')
+
+source("code/bias_components_data_prep.R")
+```
+
+For both probability and nonprobability surveys, researchers devote a great deal of effort to identifying and mitigating sources of selection bias in survey estimates. By selection bias, we mean a difference between a survey estimate and the true population quantity that arises because some aspect of the selection process results in samples whose composition does not match that of the population. This is in contrast with sampling error, which is not systematic, and  errors of measurement. The Total Survey Error (TSE) framework identifies noncoverage and nonresponse as the primary sources of selection bias in surveys. Noncoverage occurs when units in the population are missing from the sampling frame and have no possibility of selection. Nonresponse is when units that have been selected fail to complete the survey [@biemer2010; @groves1989; @groves2010]. Bias results when the noncovered or nonresponding units are systematically different from the observed units with respect to the outcome of interest.
+
+The TSE framework was developed under the probability-based survey paradigm where the validity of statistical inferences comes from the fact that sampled units are randomly selected from the population. When a sample is slected randomly from a frame, undercoverage and nonresponse describe ways in which the actual data collection process differs from the ideal of perfect randomization. In principle, selection bias could be eliminated from probability-based surveys by achieving 100% coverage and response. The same cannot be said for nonprobability surveys. In the absence of random selection, perfect coverage and response provide no information about the possibility of systematic differences between a sample and the population.
+
+For nonprobability surveys, statistical inferences are not -- by definition -- based on randomization. Rather, they are based on a model that (explicitly or implicitly) assumes a relationship between the units in the sample and the target population. Bias results when the model used to produce an estimate incorrectly specifies this relationship. Whereas reducing bias in probability-based estimates requires identifying deficiencies in the randomization mechanism (i.e. undercoverage and nonresponse), reducing bias in nonprobability estimates requires identifying deficiences in the modeling assumptions. 
+
+Most previous research into selection bias in nonprobability samples has applied a standard estimation procedure to different nonprobability and probability-based samples and compared the resulting estimates either to each other or to population benchmark values. Some of this research found that nonprobability samples yielded consistently inferior estimates to probability samples [e.g.@chang2009; @yeager2011]. Other studies have found nonprobability survey estimates to compare favorably to probability-based estimates [e.g. @ansolabehere2013; @ansolabehere2014; @wang2014]. Those studies that have evaluated estimates from several different nonprobability sample vendors have generally found that the level of bias varies considerably across nonprobability sample vendors [@craig2013; @erens2014; @gittelman2015; @kennedy2016; @yeager2011]. 
+
+Most studies at least mention the need to make assumptions about selection being ignorable given some set of adjustment variables, but aside from noting the presence or absence of biased estimates there is rarely any additional probing into whether these assumptions are violated and how. This may be attributable in part to the fact that under the standard TSE approach to survey error, and design-based inference more broadly, the goal is to minimize reliance on unverifiable assumptions and focus attention on measurable phenomena such as coverage and nonresponse. For nonprobability surveys, however, there is no escaping unverifiable assumptions. A better understanding of the sources of and solutions to selection bias in nonprobability surveys requires a framework that places the assumptions front and center and puts the focus on assessing the degree to which those assumptions are justified. 
+
+<!-- Mercer et al [-@mercer2017] -->
+In the previous chapter, we proposed such an alternative framework focused on the three conditions that must be met in order for nonprobability surveys to  produce population estimates that are free from selection bias: exchangeability, positivity, and composition. Exchangeability is the requirement that the researcher has measured any variables necessary to render the survey outcome conditionally independent of sample membership. Positivity is the requirement that there are no portions of the population that are entirely absent from the sampple. Composition is the requirement that the joint distribution of any confounding variables either matches or can be made to match the population distribution. When all three of these requirements are met, there can be no systematic selection bias in survey estimates. These ideas are not new, but are drawn from the field of causal inference which has grappled with the problem of estimating causal effects from non-experimental data for decades [e.g. @rubin1974]. 
+
+
+The current chapter further develops the proposed framework by providing a more rigorous formulation for the different types of selection bias. In section \@ref(bias-overview), we describe exchangeability, positivity, and composition in detail in the form of conditional probabilities. In section \@ref(estimation), we show that the net selection bias in a survey estimate can be decomposed into separate, additive components associated with exchangeability, positivity, and composition respectively by taking the differences of several conditional means. We then show how to estimate the values of these components if a satisfactory reference dataset is available. In section \@ref(civic-example), we provide an empirical example. We estimate bias components for six different outcome variables related to civic engagement for the nine nonprobability samples evaluated by @kennedy2016 as well as an additional sample collected using Amazon Mechanical Turk. We assess the how the magnitude of each bias component varies both for individual survey outcomes and across sample sources. 
+
+## Survey estimates and selection bias {#bias-overview}
+For a target population of size $N$, let $S=1$ indicate a set of $n$ units included in a survey sample. For nonsampled units $S=0$. Assume there is a variable $X$ that is measured for every unit in the population, a variable $U$ that is unknown for every unit in the population, and an outcome variable $Y$ that is measured for the units in the sample but unknown for the nonsampled units. Specific realized values of $Y$, $X$ and $U$ are indicated in lower case as $y$, $x$, and $u$ respectively. For pedagogical simplicity, we will assume that $Y$ is binary and that $X$ and $U$ are univariate and discrete, and that $n$ is small relative to $N$ such that $n/N \approx 0$. 
+
+To produce estimates from the sample that generalize to the larger population, the distribution of the observed variable in the sample must match the distribution in the larger population such that
+
+\begin{equation}
+(\#eq:no-bias)
+\Pr \left( Y \mid S=1\right) = \Pr \left(Y \right).
+\end{equation}
+
+Because $n/N \approx 0$, we assume $\Pr\left(Y\right) = \Pr\left(Y \mid S=0\right)$, which means we can formulate bias as a systematic difference between sampled and nonsampled units
+
+\begin{equation}
+(\#eq:delta)
+\delta_{Y} = \Pr \left(Y \mid S=1\right) - \Pr \left(Y \mid S=0\right).
+\end{equation}
+
+Under this formulation, $\delta_{Y}$ is analogous to a treatment effect in causal inference where $S=1$ and $S=0$ are the treatments. In causal studies, $Y$ is measured on both treated and nontreated units in the population and the groups are compared. In surveys, we generally assume that sampled and nonsampled units are not systematically different and that measurements on the sampled units will also accurately describe the nonsampled units. If we accept that there is no direct causal relationship between inclusion in the sample and $Y$, then any observed difference between population and sample values must be the result of differences between $\Pr\left(Y,X,U \mid S=1\right)$ and $\Pr\left(Y,X,U \mid S=0\right)$.
+
+As in causal inference, the nature of selection bias can be represented in terms of the conditional dependencies between $Y$, $X$, $U$ and $S$ [@hernan2004; @pearl2009; @rosenbaum1983]. To produce unbiased population estimates from a sample, three conditions must be met: exchangeability, positivity and composition. If we assume knowledge of $\Pr\left(Y \mid X, S\right)$ and $\Pr\left(X \mid S\right)$, it is possible to construct a set of hypothetical survey and population means. By taking the differences of these quantities, we can partition the net bias $\delta_{Y}$ into separate terms associated with each component such that:
+
+\begin{equation}
+(\#eq:components)
+\delta_{Y} = \delta^\text{exch} + \delta^\text{pos} + \delta^\text{comp}
+\end{equation}
+
+We will restrict our focus to estimates of population proportions, but this approach can be applied to other types of estimates as well. In this section we will describe the exchangeability, positivity, and composition requirements in terms of conditional probabilities. 
+
+### Exchangeability
+Exchangeability describes the situation where the distribution of $Y$ is the same for both sampled and nonsampled units, either unconditionally or conditional on some set of observed characteristics $X$. When $Y$ is unconditionally independent of $S$, denoted $Y \CI S$, we say that the sampled and nonsampled cases are unconditionally exchangeable with respect to $Y$. This is the case in expectation under probability sampling when all units have an equal probability of selection, and implies that $\Pr\left(Y \mid S=1\right) = \Pr\left(Y \mid S=0\right)$. If $\Pr\left(Y\right) \neq \Pr \left(Y \mid S=1\right)$ then sampled observations are not exchangeable and sample estimates will be biased unless $Y$ can be made independent of $S$ by conditioning on observed variables.
+
+If $Y \CI S \mid X$ then nonsampled units are said to be conditionally exchangeable, which implies that $\Pr\left(Y \mid X=x, S=1 \right) = \Pr\left(Y \mid X=x, S=0\right)$. If all possible values of $x$ in $X$ have been observed in the sample and the population distribution of $X$ is known, then the unconditional population distribution of $Y$ can be recovered as follows:
+
+\begin{equation}
+(\#eq:cond-exch)
+\Pr\left(Y\right) = \Pr\left(Y \mid X, S=1\right) \Pr\left(X \mid S=0 \right).
+\end{equation}
+
+If $Y \nCI S \mid X$ then sampled and nonsampled units are not exchangeable, meaning that we would need to condition on $U$ in order to make $Y \CI S$. Since $U$ is unobserved for the sampled units, it cannot be conditioned upon and as a result the population distribution of $Y$ cannot be recovered without strong assumptions [@greenland1986; @greenland2009]. In the survey context, the key to achieving conditional exchangeability is ensuring that all confounding variables are measured for all sampled units. 
+
+Unconditional and conditional exchangeability are often referred to as missingness completely at random (MCAR) and missingness at random (MAR) respectively [@little2002]. We prefer the term exchangeability as it more directly emphasizes the necessity of equivalence between sampled and nonsampled units that share a set of observed characteristics. 
+
+If we accept that $Y \CI S \mid X, U$ it follows that
+
+\begin{equation}
+(\#eq:equiv)
+\Pr\left(Y \mid X, U\right) = \Pr\left(Y \mid X, U, S\right).
+\end{equation}
+
+We can marginalize over either $U$ or $S$ on the right hand side of \@ref(eq:equiv) to demonstrate that
+
+\begin{equation}
+(\#eq:instrument)
+\Pr\left(Y \mid X, S\right) = \Pr\left(Y \mid X, U\right),
+\end{equation}
+
+thus implying that any observed difference between $\Pr\left(Y \mid X, S=1\right)$ and $\Pr\left(Y \mid X, S=0\right)$ is the result of confounding by $U$. Effectively, $S$ serves as an instrumental variable for measuring the effect of $U$ on $Y$ [@angrist1996].
+
+The magnitude of the bias due to the confounding influence of $U$ on the population proportion is
+
+\begin{equation}
+(\#eq:exch-bias)
+\delta^{\text{exch}} = \sum_{x \in X}{ \left[ \Pr(Y \mid X = x, S=1) - \Pr(Y \mid X = x, S=0)\right]\Pr\left(X=x \mid S=1\right)}.
+\end{equation}
+
+This is equivalent to the average effect of treatment on the treated (ATT) in causal inference terminology, and is the weighted sum of conditional average treatment effects on the treated (CATT) over $X$, where "treatment" is inclusion in the sample. Because there is no true treatment effect of $S$, we refer to $\delta^{\text{exch}}$ as a confounding effect. Confounding effects may not be the same for all values of $X$, and we can think of $\delta^\text{exch}_{x}$ as a conditional confounding effect for a particular value of $X$. We can think of $\delta^\text{exch}_{i}$ as the expected difference between sampled and nonsampled units who share the same value of $x$ as the $i$th unit in the sample.
+
+### Positivity
+Conditional exchangeability is a necessary but insufficient condition for producing unbiased population estimates. The positivity requirement states that if $Y$ is conditionally exchangeable given $X$, all distinct values of $X$ must be observed in the sample, or that $\Pr\left(S=1 \mid X=x\right) > 0$ for all values of $x \in X$ [@hernan2006; @petersen2012]. To illustrate why this is the case, we can reformulate \@ref(eq:cond-exch) as
+
+\begin{equation} 
+(\#eq:cond-exch-2)
+\Pr\left(Y\right) =  \sum_{x \in X}{ \frac{\Pr\left(Y \mid X=x, S=1\right) \Pr\left(X=x \mid S=1\right) } { \Pr\left(S=1 \mid X=x\right)}}.
+\end{equation}
+
+If there are any instances where $\Pr\left(S=1 \mid X=x\right) = 0$ (i.e. excluded from the sample), \@ref(eq:cond-exch-2) is undefined. Intuitively, groups that are underrepresented but present in the sample provide some information that can be used to generalize back to similar units in the population, but we have no information about groups that are missing from the sample altogether.
+
+The magnitude of bias resulting from a failure of positivity is simply the difference between the population mean for those portions of the population that are represented in the sample and the mean for the full population. Let $\phi_{x} = 1$ if $\Pr\left(S=1\mid X=x\right) > 0$ and 0 otherwise. We can quantify the bias due to a failure of positivity as
+
+\begin{equation} 
+(\#eq:pos-bias-1)
+\delta^\text{pos} = \Pr\left(Y \mid S=0, \phi_{x} = 1\right) - \Pr\left(Y \mid S=0\right)
+\end{equation}
+
+which is equivalent to
+
+\begin{equation}
+(\#eq:pos-bias-2)
+\delta^\text{pos} = \Pr\left(\phi_{x} = 0 \mid S=0\right) \left[  \Pr\left(Y \mid S=0, \phi_{x} = 1\right) - \Pr\left(Y \mid S=0, \phi_{x}=0\right) \right]
+\end{equation}
+
+Equations \@ref(eq:pos-bias-1) and \@ref(eq:pos-bias-2) are similar to the traditional formulations for coverage and nonresponse error in probability-based surveys with the difference being that $\phi_{x}$ is necessarily conditional on an observed $X$ and therefore conditional on a model in which $X$ has been specified. In contrast, noncoverage and nonresponse are not necessarily conditional on any chosen set of covariates but rather on the survey design and execution [@groves1989]. As with coverage and nonresponse error in probability-based surveys, the magnitude of bias due to a lack of positivity depends on what proportion of the population is systematically excluded and how different the excluded units are with respect to $Y$.
+
+When exchangeability and positivity both hold, the condition is known as strong ignorability [@rosenbaum1983a]. Under strong ignorability, the conditional distribution of $Y \mid X$ in the sample matches that of nonsampled population, and unbiased predictions can be made about any units in the target population for which $X$ is known. In causal studies, strong ignorability of treatment assignment only guarantees internal validity in that it permits unbiased causal inferences about the units included in the study [@shadish2002]. The ability to generalize from an experimental sample to a larger population, or external validity, requires an additional layer of strong ignorability with respect to inclusion in the study [@stuart2011]. The survey context is less complicated in that only inclusion in the sample must be strongly ignorable for the outcomes of interest.
+
+### Composition
+When the exchangeability and positivity requirements are both met, it is possible to make predictions about individual units in the population if we know their value for $X$. However to estimate population parameters we must also know the distribution of $X$ in the population, or $\Pr\left(X \mid S=0\right)$. Bias that results from problems with composition amounts to the error that comes from having the necessary kinds of units in the sample but in the wrong proportions. More formally, it is the difference between the sample mean if there were no confounding and the mean for the set of nonsampled units where $\phi_{x}=1$:
+
+\begin{equation}
+(\#eq:comp-bias)
+\delta^\text{comp} = \sum_{x \in X}{\Pr\left( Y \mid X=x, S=0\right)  \left[ \Pr\left(X=x \mid S=1\right)  -  \Pr\left(X=x \mid S=0, \phi_{x}=1\right) \right] }.
+\end{equation}
+
+We might be tempted to think of a violation of the positivity requirement as a special case of a composition problem where $\Pr\left(X=x \mid S=1\right) = 0$, and in a sense this is correct. However, the critical distinction lies in the fact that problems with composition can be corrected if the distribution of $X$ is known, whereas an absence of positivity cannot be rectified without additional strong assumptions. It is worth noting that conventional methods of adjusting for noncoverage and nonresponse used in both probability-based and nonprobability surveys, such as raking and generalized regression estimation (GREG, rely on an assumption of strong ignorability and as such can only correct problems with composition. Additionally, such techniques only work if the population distribution of $X$ is known [@kalton2003]. In some instances, it may be possible to achieve strong ignorability only by conditioning on an observed variable whose population distribution is unknown. In this case, it is not possible to estimate population parameters (although it remains possible to make predictions about individual units in the population given).
+
+## Bias decomposition {#decomposition} 
+For estimates of a population mean or proportion, it is most straightforward to see how each of these bias terms add up to the net bias if we consider the following conditional means. Let $\bar{y}^{\left(1\right)}_{s_1}$ be the mean for the realized survey sample. The superscript ${\left(1\right)}$ indicates that the value is confounded (i.e. based on $\Pr\left(Y \mid X, S=1\right)$). The subscript $s_1$ indicates that the value is based on the distribution of units in the in the survey sample $\Pr\left(X \mid S=1\right)$. Let $\bar{y}^{\left(0\right)}_{s_0}$ be the true mean for the population where ${\left(0\right)}$ indicates that the value is unconfounded (i.e. based on $\Pr\left(Y \mid X, S=0\right)$ and subscript $s_0$ indicates that the value is based on the distribution of units in the target population, that is $\Pr\left(X \mid S=0\right)$. In principle, both of of these quantities are observable. Let $\bar{y}^{\left(0\right)}_{s_0,\phi=1}$ denote the true mean for the share of the population for which common support exists in the sample. This is not observable unless for some reason $\phi$ is known. Finally, let $\bar{y}^{\left(0\right)}_{s_1}$ denote the counterfactual mean that is based on the observed distribution of $X$ in the sample but is unconfounded. It follows that
+
+\begin{equation}
+(\#eq:decomp)
+{\delta ^{net}} = \bar y_{s_1}^{\left(1\right)} - \bar y_{s_0}^{\left(0\right)} = \underbrace {\left( {\bar y_{s_1}^{\left(1\right)} - \bar y_{s_1}^{\left(0\right)}} \right)}_{{\delta ^{exch}}} + \underbrace {\left( {\bar y_{{s_0},\phi  = 1}^{\left(0\right)} - \bar y_{s_0}^{\left(0\right)}} \right)}_{{\delta ^{pos}}} + \underbrace {\left( {\bar y_{s_0}^{\left(0\right)} - \bar y_{{s_0},\phi  = 1}^{\left(0\right)}} \right)}_{{\delta ^{comp}}}.
+\end{equation}
+
+### Estimation {#estimation} 
+To calculate $\deltaexch$, $\deltapos$, and $\deltacomp$ for a given nonprobability sample, we need to know $\Pr\left(Y \mid X, S\right)$ and $\Pr(X \mid S)$ as well as $\phi_{X}$. To estimate these quantities, we require data for the nonsampled units in the population in addition to a nonprobability dataset. Since this is impossible in most situations, we employ a reference dataset that is assumed to accurately reflect the population joint distribution $\Pr(Y,X)$. Depending on the application, this could be administrative or census data or a high quality probability-based survey in which both $Y$ and $X$ have been measured. Let $Y_s$ and $X_s$ represent the vectors $Y$ and $X$ for dataset $s \in S = \{0,1\}$ where $0$ and $1$ indicate membership in the reference and nonprobability datasets respectively. Let $y_{si}$ and $x_{si}$ represent the realized values of $Y$ and $X$ for unit $i$ in dataset $s$. For convenience, we will use $s_0$ and $s_1$ respectively to refer to the reference and nonprobability datasets in their entirety.
+
+We can estimate the values $\deltahatexch$, $\deltahatpos$, and $\deltahatcomp$ by modeling the outcome $Y$ as a function of $X$ and $S$ and calculating the expected counterfactual outcomes $\hat{y}_{si}^{\left(1\right)} = \mathbb{E}\left(Y \mid x_{si}, s_1\right)$ and $\hat{y}_{si}^{\left(0\right)} = \mathbb{E}\left(Y \mid x_{si}, s_0\right)$ for each unit in the nonprobability and reference samples. This is paired with a propensity score model for $\Pr\left(S=1 \mid X\right)$ that is used to estimate $\hat{\phi}_{i}$ for each observation in the reference dataset. Finally, we rely on the observed distribution of $X$ in the reference and nonprobability datasets themselves for $\Pr\left(X \mid S\right)$. 
+
+To model the conditional distribution $\Pr\left(Y \mid X, S\right)$, we fit models to predict $\hat{Y}^{\left(s\right)} = f(X_{s})$ on the reference and nonprobability datasets separately. By estimating these functions separately, we are implicitly conditioning on $S$, and we refer to these models as $f_{s}(\cdot)$. While it would be possible to combine the two datasets and fit a single model estimating $f(X,S)$, if there is substantial covariate imbalance or lack of overlap between the two samples, those regions of $X$ that are highly correlated with $S$ will function as instruments or partial instruments for $S$. In such situations, @pearl2010a demonstrated that conditioning on both a treatment variable and an instrument at the same time leads to biased estimates of treatment effects. By fitting models for each dataset separately, we avoid this problem because $S$ is never included in the same model as any potential instruments. For each observation in both datasets, we calculate the values $\hat{y}^{\left(0\right)}_{si} = f_0(x_{si})$ and $\hat{y}^{\left(1\right)}_{si} = f_1(x_{si})$.
+
+For $\phi_{X}$, we need to identify those observations in the reference dataset for which no comparable units exist in the nonprobability dataset. If $X$ is high dimensional, sparsity makes it likely that there will be many observations for which no exact match exists in the nonprobabilty dataset. The causal inference literature contains many approaches to identifying the region of $X$ for which common support exists [e.g. @crump2009; @dehejia1999; @dehejia2002; @heckman1997; @heckman1998; @hill2013; @king2006; @lechner2008; @porro2009]. Here we opt for the simple approach used by @dehejia1999 which identifies units lacking common support as those control units with propensity scores outside the range of scores observed on the treated units. Evaluating alternative methods for defining the area of common support for nonprobability samples may be a useful area of future research.
+
+To estimate $\phi_{X}$, the reference and nonprobability datasets are stacked into a single dataset, and we fit a propensity model $\hat{\pi} = g(X)$ where $\hat{\pi}_x \approx \Pr(S=1 \mid X=x)$. We can then define $\hat{\phi}$ as follows:
+
+\begin{equation}
+(\#eq:phi)
+\hat{\phi}_{si} =
+  \begin{cases}
+    1, & \text{if } \hat{\pi}_{si} < \min(\hat{\pi}_{1i})\\
+    0, & \text{otherwise}
+  \end{cases}
+\end{equation}
+
+Note that this implies that $\hat{\phi}_x = 1$ for all observations in the nonprobability dataset. This is primarily for completeness as $\hat{\phi}_{x}$ is only needed on the reference dataset for this exercise.
+
+With these estimated values, we can now calculate $\deltahatexch$ as
+
+\begin{equation}
+(\#eq:deltahatexch)
+  \deltahatexch = \frac{1}{n_1}{\sum_{i \in s_1}{\left(\hat{y}^{\left(1\right)}_{i} - \hat{y}^{\left(0\right)}_{i}\right)}}
+\end{equation}
+
+where $n_1$ is the number of observations in the nonprobability sample.
+
+We calculate $\deltahatpos$ as
+\begin{equation}
+(\#eq:deltahatpos)
+\deltahatpos =
+  \frac{
+    \sum_{i \in s_0}{\hat{y}^{\left(0\right)}_{i} \hat{\phi}_{i}}
+    }{  \sum_{i \in s_0}{\hat{\phi}_{i}}
+  } - 
+  \frac{
+    \sum_{i \in s_0}{\hat{y}^{\left(0\right)}_{i}}}{n_0},
+\end{equation}
+
+and $\deltahatcomp$ as
+
+\begin{equation}
+(\#eq:deltahatcomp)
+\deltahatcomp =
+  \frac{
+    \sum_{i \in s_1}{\hat{y}^{\left(0\right)}_{i}}
+    }{n_1}
+   - 
+  \frac{
+    \sum_{i \in s_0}{\hat{y}^{\left(0\right)}_{i} \hat{\phi}_{i}   }}{ \sum_{i \in s_0}{\hat{\phi}_{i}}}.
+\end{equation}
+
+
+## Estimating selection bias components on measures of civic engagement {#civic-example}
+\sectionmark{Estimating selection bias components}
+
+### Data
+To demonstrate an empirical application of this framework, we estimate the components of selection bias for several questions related to civic engagement. These questions originally come from the 2013 Current Population Survey (CPS) Civic Engagement Supplement, which we treat as the reference dataset representing the true population distribution of outcomes and covariates. To minimize the potential effects of measurement error due to proxy reporting we use the supplement self-respondent weight (PWSRWGT) which yields an unweighted sample size of 27,566. These questions were also asked on a set of nine parallel nonprobability surveys conducted by Pew Research Center in 2015 and described in a report by @kennedy2016. These surveys were conducted with eight different online sample vendors and are labeled Samples A through I. We also include a survey fielded using Amazon's Mechanical Turk, a crowdsourcing platform where individuals are paid to complete online tasks. The MTurk survey, also sponsored by Pew Research Center, used the same questionnaire as the the surveys examined in @kennedy2016. The field dates and sample sizes are listed in Table \@ref(tab:svy-details). We do not report response rates as they are not substantively meaningful for nonprobability surveys. 
+
+We do not apply any weighting adjustments to the nonprobability samples. As such, the estimated bias components will not necessarily reflect a final estimate, but instead provide a sense of the distribution of bias prior to any attempt to correct it. Because \@ref(eq:deltahatexch), \@ref(eq:deltahatpos), and \@ref(eq:deltahatcomp) are based on predicted values for individual units, calculating weighted versions of these quantities is straightforward.
+
+Table: (\#tab:svy-details) Survey field dates and sample sizes
+
+Survey   |Field dates             | Sample size| 
+:--------|:-----------------------|:-----------:
+Sample A | Feb. 25, 2015          | 1,022      |
+Sample B | Feb. 26 - Mar. 3, 2015 | 1,049      |
+Sample C | Feb. 25-27, 2015       | 1,178      |
+Sample D | Feb. 25-27, 2015       | 1,005      |
+Sample E | Feb. 24 - Mar. 8, 2015 | 1,022      |
+Sample F | Feb. 25-26, 2015       | 1,008      |
+Sample G | Oct. 1-6, 2015         | 1,010      |
+Sample H | Oct. 2-8, 2015         | 1,007      |
+Sample I | Aug. 19-31, 2015       | 1,000      |
+MTurk    | Sep. 25 - Oct. 2, 2015 | 1,017      |
+
+For each of these surveys, we are interested in estimating population percentages for the following six survey outcomes ($Y$) coded as binary indicators:
+
+* Always votes in local elections.
+* Trusts all or most people in their neighborhood.
+* Typically talk to their neighbors every day or a few times a week.
+* In the last twelve months, participated in a school, neighborhood or community group.
+* In the last twelve months, participated in a civic or service organization.
+* In the last twelve months, participated in a sports or recreation organization.
+
+For adjustment covariates, we use sex, age, race and Hispanic ethnicity, educational attainment, and the Census Bureau's administrative region. Where categories or scales differed between the CPS and the comparison surveys, variables were recoded into a common set of categories. The question wording for all variables used in this analysis can be found in Appendix \@ref(que-wording). A description of variable coding can be found in Appendix \@ref(var-coding) along with a description of the process used to singly impute missing values for the demographic variables. With the exception of Census region, none of the demographic variables on any of the samples were missing for more than 2% of the cases. For region, missingness ranged from 1% to 5%. Imputing the few missing values in these variables permits us to retain all of the interviews and avoid any additional biases that would be introduced by performing a complete case analysis. The cost is that variance estimates will be slightly underestimted, though this effect should be largely negligible.
+
+In the study by @kennedy2016, the weighting also incorporated population density and cellular telephone usage. These variables are not included in the CPS Civic Engagement Supplement and so cannot be included in this analysis. However, even in their absence, the remaining variables represent a standard set of demographics that are often used in quotas and weighting adjustments for both probability and nonprobability surveys. These were the primary demographics used in weighting by @yeager2011 and to compare quota schemes by @gittelman2015. They are also the variables used in nonresponse adjustment for a number of major media surveys conducted with both probability and nonprobability samples [e.g. @gfkpublicaffairs2016; @ipsospublicaffairs2016; @thewashingtonpost2016]. As a result, this analysis speaks directly to current scholarship and practice in the area of nonprobability surveys. 
+
+Because the CPS Civic Engagement Supplement is an interviewer-administered telephone survey while the comparison surveys are self-administered, it is possible that some portion of observed differences are the result of mode differences, particularly if measures of civic engagement are socially desirable [@kreuter2008]. To the extent such measurement differences are present in the outcome variables, they will affect the exchangeability component, $\delta^{\text{exch}}$. This makes sense in that the factors that cause differential measurement are not observed on both samples, making them effectively unobserved confounders that are associated with measurement rather than selection. Given that @kennedy2016 found that the nonprobability samples exhibited higher levels of civic engagement than the benchmarks, the presence of social desirability bias in the CPS would imply that the true level of selection bias is greater than our estimates would suggest.  Although we expect differential measurement to be minimal for the chosen demographic variables, to the extent that it is present its impact will vary depending on the the nature of the error and its correlation with $Y$ and $S$. Another possible reason for differences between the CPS and nonprobability estimates would be if the true population value changed substantially between 2013, when the supplement was fielded, and 2015 when the nonprobability surveys were conducted. This is impossible to know for certain. To the extent that there is true population change, this would also manifest as bias due to a lack of exchangeability.
+
+Finally, although the supplement is a high quality, government sponsored survey with a high response rate, it is subject to sampling and nonresponse error of its own. As such, estimated bias components should be viewed as comparisons to the best available measurements of the outcomes of interest rather than deviations from a hypothetical "true value". 
+
+### Estimating bias components with BART {#ch3-modeling}
+In principle, we could estimate the functions $f_s(\cdot)$ and $g(\cdot)$ using any kind of regression method [@snowden2011]. However, we often lack knowledge of the correct functional form, and linear models can be misspecified if interactions or nonlinearities are not accounted for in the model. In such instances, machine learning methods can help us avoid this kind of model misspecification as they permit us to fit models using a potentially large number of covariates while automatically detecting non-linear associations and complex interactions. In particular, for this sort of exercise we are not interested in drawing inferences about these model parameters but rather about their predicted values. As such, the black-box nature of many such techniques does not pose a problem.
+
+In particular, algorithms that use ensembles of classification and regression trees (CART) such as random forests, bagging, and boosting have attracted interest because of their flexibility, ease of use, and generally high predictive performance [@breiman1996; @breiman2001; @friedman2002]. @lee2010 found that for propensity score estimation, boosted regression trees [@friedman2002] performed almost as well as linear models with respect to bias and mean squared error when the associations between predictors and treatment were linear and additive and performed much better when the associations involved nonlinearities and complex interactions. @austin2012 had similar results for boosted regression trees when they were used to model the outcome directly. 
+
+In this paper, we use Bayesian additive regression trees (BART) to estimate both $f_s(\cdot)$ and $g(\cdot)$ [@chipman2010]. @hill2011 proposed the use of BART for estimating causal effects by directly modeling the outcome as a function of treatment assignment and baseline covariates, and demonstrated its efficacy in a simulation. @green2012 also demonstrated BART's utility in estimating heterogeneous treatment effects, while @kern2016 found BART to be particularly effective for generalizing causal effects from experimental samples to larger populations. @hill2011a also found BART to outperform other machine learning and parametric approches to estimating propensity scores.
+
+Similar to boosted regression trees, BART approximates a function $f(\cdot)$ with an additive model consisting of $m$ trees where
+
+\begin{equation}
+(\#eq:bart)
+  y_i = f(x_i) \approx \bar{y} + \sum_{j=1}^{m}{h(x_i; T_j, M_j)} + \epsilon_i
+\end{equation}
+
+where $T_j$ refers to the splitting rules and structure of tree $j$, $M_j$ refers to the set of expected values for each terminal node in the tree, and $\epsilon \sim \text{N}(0, \sigma^2)$. To prevent overfitting, BART employs a regularization prior for $T_j$, $M_j$ and $\sigma$ that keeps individual trees small in terms of the number of splits, and shrinks the values of $M_j$ toward 0. The hyperparameters that define the prior distribution can be tuned to provide more or less regularization.  One appealing attribute of BART is that the default values of these hyperparameters have been found to perform very well on a wide variety of problems. Here we use the default values, though it is also possible to find optimal values via cross-validation [@chipman2010].  
+
+The model is fit using a Gibbs sampling algorithm where the structure of each $T_j$ is randomly perturbed over many iterations according to a procedure described by @chipman1998. The series of iterations is a Markov chain, draws from which are used to approximate the posterior distribution of $f(X)$ once it has converged.  
+
+For dichotomous outcomes of the sort considered here, BART fits a probit model. We use this probit implementation of BART estimate both $f_s(\cdot)$ and $g(\cdot)$ using the BART package for the R statistical computing platform [@mcculloch2018; @rcoreteam2017]. After 1,000 burn-in iterations of the Markov chain, we estimate $\deltahatexch_k$, $\deltahatpos_k$, and $\deltahatcomp_k$ over $k = 1 \ldots 1000$ draws from the posterior distributions of $f_s(\cdot)$ and $g(\cdot)$ to quantify the uncertainty of the estimates. For point estimates, we report the posterior mean value for a statistic and 95% credibility intervals as measures of uncertainty.
+
+Because BART is not compatible with the complex sample design features of the CPS, we use the finite population Bayesian bootstrap (FPBB) to create a synthetic population based on the weighted distribution of observations in the reference sample [@cohen1997; @dong2014; @ghosh1997; @zhou2016]. To create the synthetic population, we follow the procedure described by @dong2014 using the CPS supplement as the reference sample. First, the weights for each observation are scaled so that they sum to the sample size which we denote $n_r$. Next, we resample a total of $N - n_r$ observations from the reference sample using a weighted Pólya urn scheme, where $N$ is the size of the full target population. In practice, the size of the synthetic population only needs to be many times larger than the reference sample. In this case, we create a synthetic population that is 100 times larger than the original CPS dataset. These resampled units are then combined with the original $n_r$ units to create a synthetic population of size $N$. Effectively, this procedure is imputing the $N - n_r$ unobserved units in the population based on a posterior predictive distribution generated from the weighted reference sample. This process creates a dataset that retains the same joint distribution as the weighted CPS sample but can be used with procedures that do not accomodate survey weights. To fully incorporate the sampling variance from the CPS into our estimates of uncertainty we would create a large number of synthetic populations and replicate the analysis on each of them. Through experimentation we found that very little changed with multiple synthetic populations, so for simplicity we use only a single synthetic population in this analysis.
+
+We do not fit the BART models for the outcomes or inclusion propensities with the entire synthetic population dataset but rather with a subsample equal in size to the nonprobability sample. This serves two purposes. First, fitting the models to such a large dataset would be computationally intractable. Second, this creates a balanced number of reference and and survey cases when we fit the inclusion propensity models. This improves the quality of the estimated inclusion propensities. When the two datasets are substantially imbalanced (as would be the case if we combined the entire synthetic population with the survey sample), the estimated probabilities tend to be biased in favor of predicting membership in the larger group. We subsample the synthetic population rather than oversample the survey data so that we do not artificially increase the level of precision for our estimates [@wallace2011].  
+
+The code used to fit these models and estimate the conditional mean values used to calculate the bias components can be found in Appendix \@ref(ap-code).
+
+## Results
+
+
+```{r summary-stats, include=FALSE}
+summary_stats = estimates %>% 
+  mutate(estimate = fct_collapse(estimate, "Net_Bias" = "Net Bias")) %>%
+  group_by(estimate) %>%
+  summarise(max_abs = round(max(abs(post_median)), 3),
+            min_abs = round(min(abs(post_median)), 3),
+            median_abs = round(median(abs(post_median)), 3),
+            min = round(min(post_median), 3),
+            max = round(max(post_median), 3)) %>%
+  gather(stat, value, -estimate) %>%
+  unite(estimate, estimate, stat) %>%
+  mutate(estimate = str_replace(estimate, "delta_hat_", "")) %>%
+  spread(estimate, value)
+
+for (n in names(summary_stats)) {
+  eval(parse(text = sprintf("%s = summary_stats[1,'%s']", n, n)))
+}
+
+min_exch_trust = estimates %>% 
+  filter(y_var == "Trust neighbors") %>% 
+  filter(estimate == "Exchangeability") %>%
+  pull(post_median) %>% 
+  abs() %>% 
+  min()
+
+sample_g = sample_summary %>%
+  filter(sample == "G") %>%
+  select(est, value=avg_abs_bias_post_median) %>%
+  mutate(value = round(value, 1)) %>%
+  spread(est, value)
+
+
+```
+Having estimated $\deltahatexch$, $\deltahatpos$, and $\deltahatcomp$ for each outcome across all 10 nonprobability datasets, we have several primary research questions. First, in the aggregate, do individual outcomes exhibit different patterns with respect to the relative contribution of each component, and are these patterns consistent in magnitude across vendors? Similarly, is the variability in average bias across sample sources disproportionately attributable to specific bias components, and are the patterns consistent across individual outcomes? 
+
+```{r signed-bias-by-item, fig.cap="Mean signed bias by outcome averaged over all samples. Bars depict 95% credibility intervals.", fig.height=2}
+
+ggplot(y_var_summary, aes(y = avg_bias_post_median, 
+                           ymax = avg_bias_post_ucl95, 
+                           ymin=avg_bias_post_lcl95,
+                           x = fct_rev(y_var))) +
+  geom_linerange() +
+  geom_hline(yintercept = 0, linetype = "dotted", color = "gray") +
+  geom_point(shape=21, fill="white", size=1.5) +
+  facet_wrap(~est, nrow = 1) +
+  mytheme +
+  theme(axis.title.y = element_blank(),
+        legend.position = "none") +
+  scale_y_continuous("Mean signed bias (percentage points)") +
+  coord_flip()
+
+```
+
+Figure \@ref(fig:signed-bias-by-item) depicts the the net bias for each question and the values for the three bias components averaged over all samples. We can see that the exchangeability component tends to be higher than the others on average, although for trusting neighbors and frequency of talking to neighbors, the composition component is nearly as large. Also notable is that the positivity component is in the opposite direction from the others. That is to say, the demographic groups that are systematically missing from the nonprobability samples also tend to be less civically engaged. With respect to composition, the demographic groups that are overrepresented relative to the population also tend to be more civically engaged. The large, positive exchangeability components suggest that there are unobserved factors that make the sample respondents even more civically engaged than we would expect given demographics alone. 
+
+However, Figure \@ref(fig:abs-bias-by-sample) suggests a more complicated pattern when it comes to individual samples. Samples displaying the highest mean absolute net bias tend to have correspondingly high values for the exchangeability component. Composition also shows a curvilinear pattern where the samples with both the highest and lowest average net bias also have compositional error. There also appears to be an inverse relationship between composition and exchangeability. Figure \@ref(fig:exch-by-comp) plots this relationship directly at the sample level. The pattern suggests that, on average, the samples with demographic distributions that most closely match the population also tend to suffer from a higher degree of confounding for these outcome variables. 
+
+
+```{r abs-bias-by-sample, fig.cap="Mean absolute bias for samples averaged over all six outcome variables. Bars depict 95% credibility intervals.", fig.height=2}
+ggplot(sample_summary, aes(y = avg_abs_bias_post_median, 
+                           ymax = avg_abs_bias_post_ucl95, 
+                           ymin=avg_abs_bias_post_lcl95,
+                           x = fct_rev(sample))) +
+  geom_linerange() +
+  geom_point(shape=21, fill="white", size=1.5) +
+  facet_grid(.~est) +
+  mytheme +
+  theme(axis.title.y = element_blank(),
+        legend.position = "none") +
+  scale_y_continuous("Mean abs. bias (percentage points)") +
+  coord_flip()
+
+```
+
+
+```{r exch-by-comp, fig.cap="Scatterplot of average absolute bias due to exchangeability and composition for all samples. Estimates are averaged over all outcome variables.", fig.height=2.5}
+sample_summary %>% 
+  filter(est %in% c("Exchangeability", "Composition")) %>%
+  select(sample, est, avg_abs_bias_post_median) %>%
+  spread(est, avg_abs_bias_post_median) %>%
+  ggplot(aes(y = Composition, 
+             x = Exchangeability, label = sample)) +
+  geom_smooth(method = "lm", se = FALSE, size = .5, color = "blue", fullrange = TRUE) +
+  geom_text() +
+  coord_fixed() +
+  mytheme + expand_limits(x = 0, y = 0) +
+  scale_y_continuous("Avg. Abs. Bias From Composition") +
+  scale_x_continuous("Avg. Abs. Bias From Exchangeability")
+
+
+```
+
+Figure \@ref(fig:components-by-sample) shows the absolute values of bias components for each outcome within samples, which are sorted from left to right by average absolute net bias across all six outcome variables. While it is clear that there is a great deal of variability within samples when it comes to the level of exchangeability bias for individual estimates, the loess regression line shows clearly that the level of exchangeability bias is, to a large degree, a function of the sample. We can also see that the average absolute exchangeability bias for Sample I is disproportionately affected by one particularly large outlier -- always voting in local elections -- that is roughly 9 percentage points higher than the next highest item. The curvilinear pattern for composition that was observed in the aggregate also appears to be reasonably consistent with the item level estimates, although there is a great deal of variability within samples making it difficult to rule out the the possibility that the pattern is simply noise.
+
+```{r components-by-sample, fig.cap='Bias components for individual questions across samples. Circles are the absolute estimated bias component values for individual variables. Samples are ordered from highest to lowest by mean absolute net bias across all six outcomes. ', fig.height=3}
+
+estimates %>%
+  filter(estimate != "Net Bias") %>%
+  ggplot(aes(y=abs(post_median), 
+             x=sample_ordered, 
+             group = estimate)) +
+  geom_point(shape = 1, alpha=.5) +
+  geom_smooth(se = FALSE, size = .5) +
+  facet_wrap(~estimate) +
+  mytheme +  
+  scale_x_discrete("Sample") +
+  scale_y_continuous("Abs. Bias") +
+  theme(aspect.ratio = 1) 
+
+
+```
+
+
+If we organize the data by individual outcome variables as in Figure \@ref(fig:components-by-item) we can see that for individual estimates, exchangeability is by far the strongest contributor to net bias despite variability in the level of exchangeability bias within samples. Here the circles reflect the estimated value of a specific bias component on the vertical axis and the net bias for the item on the horizontal axis. For positivity and composition, the regression lines lines are essentially flat for every question, meaning that differences between samples in the net bias for individual survey outcomes are not strongly associated with either of these error sources, though they do clearly have an average effect. The positive associations between net bias and exchangeability, on the other hand, suggest that differential accuracy between samples is strongly driven by different levels of confounding. The possible exception would be voting in local elections where one outlier (Mechanical Turk) has a different pattern of bias from the others. If the Mechanical Turk sample is removed, the regression line for composition becomes steeper and the line for exchangeability becomes less steep for voting in local elections. 
+
+```{r components-by-item, fig.cap="Scatterplots of estimated bias components by net bias across outcomes. Variables are ordered from highest to lowest by average absolute net bias across all 10 samples.", fig.height=8}
+df = estimates %>% select(sample, estimate, post_median, y_var_label, y_avg_abs_net_bias) %>%
+  mutate(post_median = post_median) %>%
+  #filter((y_var_label == "Vote local" & sample == "MTk")==FALSE) %>%
+  ungroup() %>%
+  mutate(y_var_label = fct_reorder(y_var_label, -y_avg_abs_net_bias)) %>%
+  group_by(y_var_label, sample) %>%
+  mutate(net_bias = post_median[estimate=="Net Bias"]) %>%
+  filter(estimate != "Net Bias")
+
+df %>%
+  ggplot(aes(y=post_median, x=net_bias)) + 
+  geom_point(alpha=.7, shape=1) +
+  geom_smooth(method="lm", se = FALSE, size=.5, color="blue") +
+  geom_hline(yintercept=0, linetype=3) +
+  geom_vline(xintercept=0, linetype=3) +
+  facet_grid(y_var_label~estimate) +
+  scale_shape_discrete(solid=FALSE) +
+  scale_x_continuous("Net bias (percentage points)") + #, limits = c(-11, 28)) +
+  scale_y_continuous("Bias component (percentage points)") + #, limits=c(-11, 28)) +
+  mytheme +  
+  coord_fixed() 
+```
+
+## Discussion
+In this chapter, we have demonstrated mathematically how exchangeability, positivity, and composition relate to the total selection bias for a survey estimate and shown how these individual components can be estimated when a reference dataset of sufficient quality and containing the necessary variables is available. The empirical example nicely illustrates the framework's potential utility. 
+
+Given the overall high level of confounding bias relative to positivity and composition, the most obvious finding is that the basic demographics we have conditioned on in this study are generally poor covariates for explaining differences between these samples and the larger population. While this study can only speak to these six civic engagement variables, other studies have found that demographic variables are often insufficient for the purposes of correcting selection bias [e.g. @lee2006; @mercer2018; @schonlau2007]. Of course finding that they are insufficient tells us little about which variables would improve things. 
+
+However, the ability to disentangle problems of exchangeability from positivity and composition opens up a variety of new paths for identifying possible solutions. For example, replicating this analysis among subgroups would make it easier to identify specific problem groups and to determine if the possible solutions involve adjusting weighting (composition), recruiting additional types of respondents (positivity), or soliciting expert help to identify possible confounders (exchangeability). If additional confounders were found and incorporated into this kind of analysis, we would see the bias shift from exchangeability into either positivity or composition depending on whether the additional detail identifies certain types of units as missing entirely or simply out of proportion. Repeating this kind of analysis with different sets of covariates may also help identify variables that are either ineffective or actually amplify bias when used for weighting [@kreuter2011; @pearl2010a]. When estimates appear to have little to no bias, estimating these bias components could help determine if the estimate really is free of bias or if there are offsetting biases that cancel each other out.
+
+Perhaps more interesting is the possibility of an inverse relationship between exchangeability and composition bias. It is plausible that efforts to force a sample to meet a rigid demographic profile could result in something that matches the population very closely on demographics but introduces new confounders, particularly if there are many quota variables. The possible curvilinear pattern for composition bias where the the most and least accurate samples both have low composition bias also merits further scrutiny. It could be that the less accurate sample providers attempt to meet demographic quotas with little consideration for other quality measures while the most accurate match on demographics because they pay attention to other quality measures. 
+
+It is worth noting that Sample I employed a more sophisticated selection procedure than the other survey samples. It employed sample matching on a combination of demographic and nondemographic variables. The others used basic demographic quotas [@kennedy2016]. Mechanical Turk, which is not intended as a source of survey sample, involved no demographic controls at all. Sample I and Mechanical Turk the are the two samples that had both low exchangeability bias and low composition bias on average. If these two samples are excluded from the analysis, the negative association between compostion and exchangeability is much stronger, though the curvilinear pattern with composition would disappear. The appropriateness of doing so would depend on whether these two samples are best thought of as qualitatively different from the others. While one study involving a limited set of outcome variables is in no way definitive, it does suggest a potentially fruitful avenue for future research.
+
+It might be argued that this kind of analysis is only possible with a sufficently detailed reference dataset that already contains the true population values. This is certainly true, but this criticism is equally true for research into nonresponse or coverage error in probability-based surveys. Even when this sort of reference data is unavailable, the causal framework provides a ready set of tools for hypothesizing about problems and reasoning about potential solutions. Most importantly, it makes it easier for researchers to identify and scrutinize their own assumptions during survey design and analysis. 
+
+

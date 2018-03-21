@@ -1,0 +1,12 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+cache
+figures
+_book/*
+./*.rds
+./*.RDS
+./*.html
+.DS_Store
+

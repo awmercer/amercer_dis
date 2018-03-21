@@ -1,0 +1,56 @@
+\usepackage{booktabs}
+%\usepackage[margin=1.0in]{geometry} % Causeses error in bookdown
+% \geometry{letterpaper}            
+\usepackage{color,soul}
+% %\usepackage{amsmath,amssymb}
+% %\usepackage{mathspec}
+% \usepackage{mathtools}
+% \usepackage{natbib}
+% %\linespread{1.6}
+\usepackage{setspace}
+\doublespacing
+%\onehalfspacing
+\usepackage{parskip}
+% % \usepackage[parfill]{parskip} % bookdown error
+% \setcounter{secnumdepth}{3} %Only number the first and second subsection
+% \usepackage{algpseudocode}
+% \usepackage{algorithm}
+% \usepackage{footmisc}
+% \usepackage{float}
+% \usepackage{relsize}
+\usepackage{centernot}
+% \usepackage{bm}
+%\usepackage[justification=justified, singlelinecheck=off]{caption}
+\usepackage{longtable,booktabs}
+\usepackage{multirow}
+\usepackage{fancyhdr}
+\usepackage[group-separator={,}]{siunitx}
+% \usepackage[flushleft]{threeparttable}
+% \usepackage{ragged2e}
+% \setlength\RaggedRightParindent{15pt}
+% \raggedright
+\usepackage{subfig}
+
+%\pagestyle{plain} % Removes titles from top of page
+\raggedbottom
+\raggedright
+
+% These lines append the bibliography to the table of contents
+\usepackage{makeidx} 
+\makeindex
+\usepackage[nottoc]{tocbibind}
+
+\newcommand{\bigCI}{\mathrel{\text{\scalebox{1.07}{$\perp\mkern-10mu\perp$}}}}
+\newcommand{\nbigCI}{\centernot{\bigCI}}
+
+\newcommand{\CI}{\mathrel{\perp\mspace{-10mu}\perp}}
+\newcommand{\nCI}{\centernot{\CI}}
+\newcommand{\deltaexch}{\delta^\text{exch}}
+\newcommand{\deltapos}{\delta^\text{pos}}
+\newcommand{\deltacomp}{\delta^\text{comp}}
+
+\newcommand{\deltahatexch}{\hat{\delta}^\text{exch}}
+\newcommand{\deltahatpos}{\hat{\delta}^\text{pos}}
+\newcommand{\deltahatcomp}{\hat{\delta}^\text{comp}}
+
+
