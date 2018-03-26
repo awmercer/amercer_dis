@@ -10,7 +10,7 @@ output:
 ```{r, include=FALSE} 
 library(knitr)
 library(kableExtra)
-knitr::opts_chunk$set(cache=TRUE, cache.path = 'cache/04-dr_estimation', warning = FALSE, message=FALSE, results="hide", fig.path = 'figures/04-dr_estimation')
+knitr::opts_chunk$set(cache=TRUE, cache.path = 'cache/04-dr_estimation/', warning = FALSE, message=FALSE, results="hide", fig.path = 'figures/04-dr_estimation/')
 
 source("code/dr_estimation_data_prep.R")
 ```
