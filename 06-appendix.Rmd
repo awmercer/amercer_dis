@@ -10,7 +10,7 @@ output:
 # Question wording {#que-wording}
 
 
-Below is the question wording for the civic engagement and demographic items as it appeared in the 10 nonprobability surveys analyzed in this disseration. For the text of the full questionnaire, see [Appendix F](http://assets.pewresearch.org/wp-content/uploads/sites/12/2016/04/Appendix-F-Questionnaire.pdf) of the original report by @kennedy2016. The variable label for the corresponding item from the 2013 Current Population Survey Civic Engagement Supplement (CPS) is included in brackets after the question number. Question wording for the civic engagement items matches the wording that was used in the CPS. 
+Below is the question wording for the civic engagement and demographic items as it appeared in the 10 nonprobability surveys analyzed in this dissertation. For the text of the full questionnaire, see [Appendix F](http://assets.pewresearch.org/wp-content/uploads/sites/12/2016/04/Appendix-F-Questionnaire.pdf) of the original report by @kennedy2016. The variable label for the corresponding item from the 2013 Current Population Survey Civic Engagement Supplement (CPS) is included in brackets after the question number. Question wording for the civic engagement items matches the wording that was used in the CPS. 
 
 
 Q0002 [PES15] During a typical month in the past year, how often did you talk with any of your neighbors?
@@ -123,7 +123,7 @@ The data from the nonprobability and CPS samples was recoded and processed as fo
 
 2. The demographic variables in both the nonprobability and CPS reference samples were recoded into the categories listed below. 
 
-3. For both the nonprobabiltiy and CPS datasets, item nonresponse to the demographic items was imputed using the `mice` package and a version of the random forest impuation algorithm described by @doove2014 implemented with the `ranger` package [@vanbuuren2011; @wright2017b]. While `mice` is a procedure for performing multiple imputation, we use it more for its ability to jointly impute several variables at once. We use only a single imputed dataset to avoid overly complicating the analysis. With the exception of Census region, none of the demographic variables on any of the samples were missing for more than 2% of the interviews. For region, missingness ranged from 1% to 5% of interviews.
+3. For both the nonprobability and CPS datasets, item nonresponse to the demographic items was imputed using the `mice` package and a version of the random forest imputation algorithm described by @doove2014 implemented with the `ranger` package [@vanbuuren2011; @wright2017b]. While `mice` is a procedure for performing multiple imputation, we use it more for its ability to jointly impute several variables at once. We use only a single imputed dataset to avoid overly complicating the analysis. With the exception of Census region, none of the demographic variables on any of the samples were missing for more than 2% of the interviews. For region, missingness ranged from 1% to 5% of interviews.
 
 
 The demographic variables were coded as follows:
