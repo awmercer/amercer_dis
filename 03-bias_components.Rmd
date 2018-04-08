@@ -1,19 +1,14 @@
----
-output:
-  html_document: default
-  pdf_document: default
----
-
 
 # Decomposing selection bias in nonprobability surveys {#ch3}
 \chaptermark{Decomposing Selection Bias}
 
 ```{r, include=FALSE} 
 library(knitr)
-knitr::opts_chunk$set(cache=FALSE, cache.path = 'cache/03-bias_components/', message=FALSE, echo=FALSE, results="hide", fig.path = 'figures/03-bias_components/')
+knitr::opts_chunk$set(cache=TRUE, cache.path = 'cache/03-bias_components/', message=FALSE, echo=FALSE, results="hide", fig.path = 'figures/03-bias_components/')
 
 source("code/bias_components_data_prep.R")
 ```
+
 
 For both probability and nonprobability surveys, researchers devote a great deal of effort to identifying and mitigating sources of selection bias in survey estimates. By selection bias, we mean a difference between a survey estimate and the true population quantity that arises because some aspect of the selection process results in samples whose composition does not match that of the population. This is in contrast with sampling error, which is not systematic, and  errors of measurement. The Total Survey Error (TSE) framework identifies noncoverage and nonresponse as the primary sources of selection bias in surveys. Noncoverage occurs when units in the population are missing from the sampling frame and have no possibility of selection. Nonresponse is when units that have been selected fail to complete the survey [@biemer2010; @groves1989; @groves2010]. Bias results when the noncovered or nonresponding units are systematically different from the observed units with respect to the outcome of interest.
 
@@ -33,6 +28,7 @@ The current chapter further develops the proposed framework by providing a more 
 
 ## Survey estimates and selection bias {#bias-overview}
 For a target population of size $N$, let $S=1$ indicate a set of $n$ units included in a survey sample. For nonsampled units $S=0$. Assume there is a variable $X$ that is measured for every unit in the population, a variable $U$ that is unknown for every unit in the population, and an outcome variable $Y$ that is measured for the units in the sample but unknown for the nonsampled units. Specific realized values of $Y$, $X$ and $U$ are indicated in lower case as $y$, $x$, and $u$ respectively. For pedagogical simplicity, we will assume that $Y$ is binary and that $X$ and $U$ are univariate and discrete, and that $n$ is small relative to $N$ such that $n/N \approx 0$. 
+
 
 To produce estimates from the sample that generalize to the larger population, the distribution of the observed variable in the sample must match the distribution in the larger population such that
 
@@ -141,7 +137,7 @@ For estimates of a population mean or proportion, it is most straightforward to 
 
 \begin{equation}
 (\#eq:decomp)
-{\delta ^{net}} = \bar y_{s_1}^{\left(1\right)} - \bar y_{s_0}^{\left(0\right)} = \underbrace {\left( {\bar y_{s_1}^{\left(1\right)} - \bar y_{s_1}^{\left(0\right)}} \right)}_{{\delta ^{exch}}} + \underbrace {\left( {\bar y_{{s_0},\phi  = 1}^{\left(0\right)} - \bar y_{s_0}^{\left(0\right)}} \right)}_{{\delta ^{pos}}} + \underbrace {\left( {\bar y_{s_0}^{\left(0\right)} - \bar y_{{s_0},\phi  = 1}^{\left(0\right)}} \right)}_{{\delta ^{comp}}}.
+{\delta ^{net}} = \bar y_{s_1}^{\left(1\right)} - \bar y_{s_0}^{\left(0\right)} = \underbrace {\left( {\bar y_{s_1}^{\left(1\right)} - \bar y_{s_1}^{\left(0\right)}} \right)}_{{\delta ^{exch}}} + \underbrace {\left( {\bar y_{{s_0},\phi  = 1}^{\left(0\right)} - \bar y_{s_0}^{\left(0\right)}} \right)}_{{\delta ^{pos}}} + \underbrace {\left( {\bar y_{s_1}^{\left(0\right)} - \bar y_{{s_0},\phi  = 1}^{\left(0\right)}} \right)}_{{\delta ^{comp}}}.
 \end{equation}
 
 ### Estimation {#estimation} 
@@ -202,6 +198,7 @@ and $\deltahatcomp$ as
 
 
 ## Estimating selection bias components on measures of civic engagement {#civic-example}
+
 \sectionmark{Estimating selection bias components}
 
 ### Data
@@ -312,7 +309,7 @@ ggplot(y_var_summary, aes(y = avg_bias_post_median,
                            ymin=avg_bias_post_lcl95,
                            x = fct_rev(y_var))) +
   geom_linerange() +
-  geom_hline(yintercept = 0, linetype = "dotted", color = "gray") +
+  geom_hline(yintercept = 0, linetype = "dotted") +
   geom_point(shape=21, fill="white", size=1.5) +
   facet_wrap(~est, nrow = 1) +
   mytheme +

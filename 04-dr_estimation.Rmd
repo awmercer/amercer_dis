@@ -1,7 +1,9 @@
 ---
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
+editor_options: 
+  chunk_output_type: console
 ---
 
 # Doubly-robust inference for nonprobability surveys with BART {#ch4}
@@ -10,7 +12,7 @@ output:
 ```{r, include=FALSE} 
 library(knitr)
 library(kableExtra)
-knitr::opts_chunk$set(cache=TRUE, cache.path = 'cache/04-dr_estimation/', warning = FALSE, message=FALSE, results="hide", fig.path = 'figures/04-dr_estimation/')
+knitr::opts_chunk$set(cache=FALSE, cache.path = 'cache/04-dr_estimation/', warning = FALSE, message=FALSE, results="hide", fig.path = 'figures/04-dr_estimation/')
 
 source("code/dr_estimation_data_prep.R")
 ```
@@ -35,6 +37,7 @@ We compare the performance of these estimators for six binary measures of civic 
 This chapter proceeds as follows: in section \@ref(ch4-methods), we describe each of these estimators in detail and consider their advantages and disadvantages when exchangeability and positivity assumptions are violated. In section \@ref(ch4-results), we compare the performance of each estimator with respect to bias, variance, and root mean squared error (RMSE) for five measures of civic engagement on 10 different nonprobability samples. In section \@ref(ch4-discussion) we discuss the extent to which these results may generalize to other situations and conclude with suggestions for future research.
 
 ## Alternative approaches to nonprobability survey inference {#ch4-methods}
+
 \sectionmark{Alternative approaches to inference}
  
 Each of the estimators considered in this study requires unit level microdata that reflects the true joint distribution of the covariates to be used in estimation. As in Chapter \@ref(ch3), we use the 2013 CPS Civic Engagement Supplement microdata as a reference dataset that is assumed to accurately reflect the true population distribution for sex, age, race and Hispanic ethnicity, educational attainment, and the Census Bureau's administrative region for U.S. adults ages 18 or older. Because BART is not compatible with the complex sample design features of the CPS, we the same finite population Bayesian bootstrap (FPBB) procedure as in Chapter 3, Section \@ref(ch3-modeling) to create a synthetic population based on the weighted distribution of observations in the reference sample [@cohen1997; @dong2014; @ghosh1997; @zhou2016]. 
@@ -82,7 +85,7 @@ and we treat the set of $MB$ estimates of $\bar{y}^{\left(pw\right)}_{mb}$ as an
 ### Superpopulation inference with outcome regression
 Whereas quasi-randomization relies on a statistical model to predict sample inclusion, superpopulation inference relies on a statistical model for the outcome $Y$. The model is then used to predict values for the unobserved units in the population. The frequentist theory behind this approach is detailed by @valliant2000. The Bayesian version of this approach, which relies on a prior distribution rather than a hypothetical superpopulation, has been described in several papers by Rod Little [see @little2004; @little2007; @little2012; @little2015]. 
 
-When ignorability requirements do not hold, error manifests differently for estimates based on outcome regression. When positivity is violated, predictions from a model based on the survey sample may not generalize to units in the population with no representation in the sample. Unlike propensity weighting, where a lack of common support will result in large weights or a failure to balance covariates, outcome regression will not give any signs that anything is wrong. On the other hand, if the model does correctly generalize to the non-covered portion of the population, then this approach can produce efficient, unbiased estimates when propensity weighting would at best be highly variable and at worst both biased and variable. One attractive feature of BART is the fact posterior predictive intervals are automatically wider for units with poor representation in the survey sample, dynamically inflating measures of uncertainty if there are a large number of such units in the population. @hill2013 proposed taking advantage of this feature to detect violations of common support in causal inference questions, and it is possible that a similar approach could be adapted for survey estimation.
+When ignorability requirements do not hold, error manifests differently for estimates based on outcome regression. When positivity is violated, predictions from a model based on the survey sample may not generalize to units in the population with no representation in the sample. Unlike propensity weighting, where a lack of common support will result in large weights or a failure to balance covariates, outcome regression will not give any signs that anything is wrong. On the other hand, if the model does correctly generalize to the non-covered portion of the population, then this approach can produce efficient, unbiased estimates when propensity weighting would at best be highly variable and at worst both biased and variable. One attractive feature of BART is the fact posterior predictive intervals are automatically wider for units with poor representation in the survey sample, dynamically inflating measures of uncertainty if there are a large number of such units in the population. @hill2013 proposed taking advantage of this feature to detect violations of common support in causal inference questions. Adopting a similar approach in a survey setting could be a valuable piece of future research. 
 
 If there are confounding variables associated with both the outcome and selection that are not accounted for in the model, the associations between the model covariates and the outcome may differ from the associations that would be observed for the whole population. For example, if the young people in a sample are more liberal than young people in the overall population, but a measure of ideology is omitted from the model, the predicted values for young people will reflect this liberal bias. This in turn will carry through to the estimated quantity. 
 
@@ -122,9 +125,7 @@ This version, also described as BARTps by @tan2018 involves first fitting the pr
 \bar{y}^{\left(psc\right)}_m = \frac{{\sum\limits_{j=1}^N {{{\tilde y}_{jm}}} }}{N}
 \end{equation}
 
-and make posterior inferences over the $M$ values of $\bar{y}^{\left(psc\right)}_m$.
-
-
+and make posterior inferences over the $M$ values of $\bar{y}^{\left(psc\right)}_m$. @tan2018 found that this estimator performed best when both the mean and propensity functions were particularly complex, although a less complex PSPP approach that only used BART to estimate the propensity score 
 
 ## Results {#ch4-results}
 For each of the 10 online nonprobability samples, we estimate the population percentage for six measures of civic engagement using each of these four estimators. We set the number of posterior draws $M = 1000$, and to keep computation manageable, we set $N^* = 20 \times n$ and set $B = 25$. For purposes of comparison, we also include an unweighted estimate of each population percentage, and estimate its variance using a standard Bayesian bootstrap [@rubin1981]. Thus, for the unweighted, OR, and OR-PSC estimates we have a total of $M = 1000$ posterior draws for each estimate of $\bar{y}$, while for PW and OR-RBC we have  $M \times B = 1000 \times 25 = 25000$. We compare each estimator with respect to absolute bias, posterior variance, and root mean squared error (RMSE). 
@@ -344,6 +345,63 @@ pos_summary %>%
 
 In terms of overall error, figure \@ref(fig:rmse) makes clear that RMSE is almost entirely a function of bias. Because bias is generally so large for these items, error from estimates that fall higher or lower than the posterior mean largely cancel out. There are a few exceptions such as frequency of talking to neighbors in the Mechanical Turk sample where OR and OR-PSC successfully eliminated nearly all of the bias but the relatively high variance no longer cancels. The resulting RMSE is actually slightly higher than the more biased estimates based on PW and OR-RBC. These sorts of exceptions only occur in instances where the bias was relatively low to begin with.  
 
+
+
+
+```{r, echo=FALSE}
+centered = pos_summary %>%
+  mutate(ucl95_c = ucl95 - pop_value,
+         lcl95_c = lcl95 - pop_value,
+         pos_mean_c = pos_mean - pop_value,
+         maxucl = max(ucl95_c),
+         minlcl = min(lcl95_c),
+         est_ordered = fct_relevel(est, "OR-RBC", "PW", "OR", "OR-PSC"),
+         y_group = fct_collapse(y_var_ordered, 
+                                a = levels(y_var_ordered)[5:6],
+                                b = levels(y_var_ordered)[3:4],
+                                c = levels(y_var_ordered)[1:2]
+         )) 
+fig_list = centered %>%
+  split(.$y_group) %>%
+  imap(
+    ~ggplot(.x, aes(y=pos_mean_c, ymax=ucl95_c, ymin=lcl95_c, x=est_ordered, color = est, shape = est)) +
+      geom_hline(yintercept = 0, linetype = "dotted", alpha=.5) +
+      geom_linerange() +
+      geom_point(fill = "white") +
+      coord_equal() +
+      facet_grid(sample_id_ordered~y_var_ordered, scales = "fixed", space="fixed", as.table = FALSE) +
+      coord_flip() +
+      theme_bw() +
+      theme(legend.position = "none", legend.title = element_blank()) +
+      scale_color_manual(values = est_colors) +
+      scale_shape_manual(values = c(19, 21, 21, 21, 21)) +
+      scale_y_continuous("Estimate (95% Credibility Interval)", breaks = seq(-25, 25, 5), 
+                         limits = c(-12.9, 24.1)) +
+      scale_x_discrete("") 
+  )
+```
+
+```{r coverage-a, echo=FALSE, fig.height=5, fig.width=5, fig.cap="Position of 95% credibility intervals relative to population value: Participatied in a school group, Talk with neighbors weekly.", fig.height=9, fig.width=6}
+
+fig_list[[1]] 
+
+```
+
+
+```{r coverage-b, echo=FALSE, fig.height=5, fig.width=5, fig.cap="Position of 95% credibility intervals relative to population value: Participated in a civic association, Participated in a sports/recreational association. ", fig.height=9, fig.width=6}
+
+fig_list[[2]]
+
+```
+
+
+```{r coverage-c, echo=FALSE, fig.height=5, fig.width=5, fig.cap="Position of 95% credibility intervals relative to population value: Always votes in local elections, Trusts all/most people in neighborhood", fig.height=9, fig.width=6}
+
+fig_list[[3]] 
+
+```
+
+While lower variance is usually considered a desireable property of an estimator, a larger posterior variance could prove beneficial if it results in higher coverage of the true population value within the credibility or confidence interval. However, for these estimates, the frequently wider intervals for OR and OR-PSC do not appear to offer such an advantage when compared to OR-RBC and PW. Figures \@ref(fig:coverage-a), \@ref(fig:coverage-b), and \@ref(fig:coverage-c) show the position of 95% credibility intervals relative to the benchmark value. Again,the differences between the different estimators are not dramatic, but there is a consistent pattern accross samples and outcome variables where the intervals for teh OR-RBC and PW estimates tend to be closer to benchmark value, even when the OR or OR-PSC intervals are wider. This is perhaps most clearly visible for participation in a recreational or sports association depicted in Figure \@ref(fig:coverage-b). Here we again see close similarity between the OR-RBC and PW intervals on one hand and the OR and OR-PSC intervals on the other. Even in instances where the OR and OR-PSC intervals are wider (as they are for samples E, F, G, and Mechanical Turk), the OR-RBC and PW intervals are still closer to the benchmark value. Trust in neighbors is again the exception where the intervals for OR-PSC and OR tend to be closer to the benchmark. 
 
 ## Discussion {#ch4-discussion}
 In this chapter we have compared the performance of four approaches to estimation in nonprobability surveys using BART: singly-robust PW and OR and doubly-robust OR-RBC and OR-PSC. As expected, given the high degree of nonignorable selection bias, none of the methods was entirely successful at eliminating bias. Overall, OR-RBC tended to perform best with respect to bias, variance, and RMSE, although PW performed nearly as well. Given that OR-RBC requires an outcome model for each variable while a single set of propensity weights can be used for for multiple variables, it would be reasonable to weigh the added analytical complexity of the doubly-robust estimator against the modest improvement it yielded over PW alone. OR and OR-PSC also performed similarly and tended to exhibit higher bias. 
