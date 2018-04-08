@@ -3,14 +3,17 @@ output:
   pdf_document: default
   html_document: default
 ---
-\singlespacing 
+
 
 # (APPENDIX) Appendix {-} 
+
 
 # Question wording {#que-wording}
 
 
 Below is the question wording for the civic engagement and demographic items as it appeared in the 10 nonprobability surveys analyzed in this dissertation. For the text of the full questionnaire, see [Appendix F](http://assets.pewresearch.org/wp-content/uploads/sites/12/2016/04/Appendix-F-Questionnaire.pdf) of the original report by @kennedy2016. The variable label for the corresponding item from the 2013 Current Population Survey Civic Engagement Supplement (CPS) is included in brackets after the question number. Question wording for the civic engagement items matches the wording that was used in the CPS. 
+
+\singlespacing 
 
 
 Q0002 [PES15] During a typical month in the past year, how often did you talk with any of your neighbors?
