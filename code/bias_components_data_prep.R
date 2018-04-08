@@ -8,10 +8,10 @@ library(foreign)
 
 # Note CH3 and CH4 are based on different runs of the procedure that have
 # slightly different numbers due to randomization
-all_estimates = readRDS("data/est_pos_full_ch3.RDS") %>%
+all_estimates = readRDS("data/est_pos_full.RDS") %>%
   filter(est != "y_bar_pop") %>%
   rename(sample = sample_id) %>%
-  filter(est %in% c("y_bar_pop_unconfounded", "y_bar_pop_cs", "y_bar_samp_confounded", "y_bar_samp_unconfounded")) %>%
+  filter(est %in% c("y_bar_pop_unconfounded", "y_bar_pop_unconfounded_cs", "y_bar_samp_confounded", "y_bar_samp_unconfounded")) %>%
   group_by(sample, est) %>%
   mutate(draw = 1:n()) %>%
   gather(y_var, value, starts_with("y_")) %>% 
@@ -19,8 +19,8 @@ all_estimates = readRDS("data/est_pos_full_ch3.RDS") %>%
   spread(est, value) %>%
   mutate(delta_hat_net = y_bar_samp_confounded - y_bar_pop_unconfounded,
          delta_hat_exch = y_bar_samp_confounded - y_bar_samp_unconfounded,
-         delta_hat_pos = y_bar_pop_cs - y_bar_pop_unconfounded, 
-         delta_hat_comp = y_bar_samp_unconfounded - y_bar_pop_cs, 
+         delta_hat_pos = y_bar_pop_unconfounded_cs - y_bar_pop_unconfounded, 
+         delta_hat_comp = y_bar_samp_unconfounded - y_bar_pop_unconfounded_cs, 
          check = delta_hat_exch + delta_hat_pos + delta_hat_comp) %>%
   select(sample, draw, y_var, starts_with("delta_hat")) %>%
   gather(est, value, starts_with("delta")) %>%
