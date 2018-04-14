@@ -1,44 +1,72 @@
+% Copied from UMD mainthesis.tex 
+%---------------------------------
+\usepackage{graphicx}
+\usepackage{cite}
+\usepackage{lscape}
+\usepackage{indentfirst}
+\usepackage{latexsym}
+\usepackage{multirow}
+\usepackage{supertabular}
+%---------------------------------
+
 \usepackage{booktabs}
-%\usepackage[margin=1.0in]{geometry} % Causeses error in bookdown
-% \geometry{letterpaper}            
 \usepackage{color,soul}
-% %\usepackage{amsmath,amssymb}
-% %\usepackage{mathspec}
-% \usepackage{mathtools}
-% \usepackage{natbib}
-% %\linespread{1.6}
 \usepackage{setspace}
-\doublespacing
-%\onehalfspacing
 \usepackage{parskip}
-% % \usepackage[parfill]{parskip} % bookdown error
-% \setcounter{secnumdepth}{3} %Only number the first and second subsection
-% \usepackage{algpseudocode}
-% \usepackage{algorithm}
-% \usepackage{footmisc}
-% \usepackage{float}
-% \usepackage{relsize}
 \usepackage{centernot}
-% \usepackage{bm}
-%\usepackage[justification=justified, singlelinecheck=off]{caption}
 \usepackage{longtable,booktabs}
 \usepackage{multirow}
 \usepackage{fancyhdr}
 \usepackage[group-separator={,}]{siunitx}
-% \usepackage[flushleft]{threeparttable}
-% \usepackage{ragged2e}
-% \setlength\RaggedRightParindent{15pt}
-% \raggedright
 \usepackage{subfig}
 
-%\pagestyle{plain} % Removes titles from top of page
+
+
+% %This gets the chapter titles formatted correctly
+% 
+\usepackage{titlesec}
+% \usepackage{apptools}
+% \renewcommand\chaptertitlename{\IfAppendix{Appendix}{Chapter}}
+\renewcommand\contentsname{Table of Contents}
+
+\titleformat{\chapter}{\normalfont\large\bfseries}{\chaptertitlename\space \thechapter:}{1em}{}
+\titleformat*{\section}{\large\large\itshape}
+\titleformat*{\subsection}{\normalfont\normalsize\itshape}
+\titleformat*{\subsubsection}{\normalfont\normalsize\itshape}
+
+\titlespacing*{\chapter}{0pt}{*1.5}{*1.5}
+\titlespacing*{\section}{0pt}{*1}{*1}
+\titlespacing*{\subsection}{0pt}{*1}{*1}
+
+
+% These lines append the bibliography to the table of contents
+\usepackage{makeidx}
+\makeindex
+\usepackage{tocbibind}
+
+
+
+% This makes it so that the inside/outside margin does not
+% alternate pages
+\usepackage{layout}
+\setlength{\oddsidemargin}{36pt}
+\setlength{\evensidemargin}{36pt}
+% -----------------------------------------
+
+
+
 \raggedbottom
 \raggedright
 
-% These lines append the bibliography to the table of contents
-\usepackage{makeidx} 
-\makeindex
-\usepackage[nottoc]{tocbibind}
+% These make floating environments less
+% likely to float
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\topfraction}{0.8}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\floatpagefraction}{0.75}
+
+
+% Custom variables for equations ------------------------------  
 
 \newcommand{\bigCI}{\mathrel{\text{\scalebox{1.07}{$\perp\mkern-10mu\perp$}}}}
 \newcommand{\nbigCI}{\centernot{\bigCI}}

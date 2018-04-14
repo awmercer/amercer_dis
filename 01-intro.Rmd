@@ -1,5 +1,12 @@
 
+\mainmatter
+
 # Introduction {#intro}
+
+\doublespacing
+\setcounter{page}{1}
+\pagenumbering{arabic}
+
 Since the mid-to-late 1990s when internet access first became widely available to the general public, the share of survey research conducted online has grown dramatically. Most of these surveys have not relied on random samples of individuals drawn from reasonably complete population frames but rather on samples of individuals who self-selected into eligibility by choosing to join a panel or clicking on an online advertisement. At first, these surveys were primarily used for market research, but as the costs of probability-based surveys have risen and response rates have declined, they have become more and more common in both academic survey research and public-opinion polling  [@callegaro2014]. 
 
 The American Association for Public Opinion Research (AAPOR) has attempted to address the issue of quality in nonprobability survey samples. It has produced task force reports on online opt-in panels [@baker2010], nonprobability surveys more broadly [@baker2013], and a report entitled "Evaluating Survey Quality in Today's Complex Environment" that included guidance on assessing the quality of nonprobability samples [@baker2016]. The consistent theme of these reports has been that nonprobability methods are comprised of a wide variety of disparate practices, the appropriateness of which will depend on the specific research application. There is little in the way of specific guidance that could be applied broadly to nonprobability research writ large.

@@ -1,29 +1,26 @@
 --- 
-title: "Selection Bias in Nonprobability Surveys"
-subtitle: "A Causal Inference Approach"
-author: 
-- "Andrew Mercer"
-- "Joint Program in Survey Methodology"
-- "University of Maryland, College Park"
-date: "March 2018"
 site: bookdown::bookdown_site
 bookdown::gitbook:
     includes:
         in_header: preamble.html
 documentclass: book
+subparagraph: true # This is needed for chapter title formatting
 bibliography: [library.bib]
 biblio-style: chicago
 link-citations: yes
 colorlinks: yes
 classoption: xcolor=dvipsnames
 fontsize: 12pt
+geometry: "left=1.5in,right=1.5in,top=1in,bottom=1in"
 indent: yes
 lot: yes
 lof: yes
+toc: yes
+toc_unnumbered: no
+toc_appendix: yes
+toc_bib: yes
 highlight: bright
-description: "Andrew Mercer Dissertation"
 ---
 
-<!-- # Acknowledgments {-} -->
 
 
