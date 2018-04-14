@@ -1,7 +1,8 @@
 bookdown::pdf_document2:
   includes:
     in_header: preamble.tex
-  latex_engine: xelatex
+    before_body: latex/before_body.tex 
+  latex_engine: pdflatex
   citation_package: natbib
   keep_tex: yes
   fig_caption: yes
@@ -12,10 +13,12 @@ bookdown::html_document2:
 bookdown::pdf_book:
   includes:
     in_header: preamble.tex
-  latex_engine: xelatex
+    before_body: latex/before_body.tex 
+  latex_engine: pdflatex
   citation_package: natbib
   keep_tex: yes
   fig_caption: yes
+  pandoc_args: --top-level-division=chapter
 bookdown::gitbook:
   css: style.css
   includes:

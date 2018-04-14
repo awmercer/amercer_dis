@@ -1,5 +1,5 @@
 
-# A causal inference framework for selection bias^[This chapter was previously published as: Mercer, Andrew W., Frauke Kreuter, Scott Keeter, and Elizabeth A. Stuart. 2017. “Theory and Practice in Nonprobability Surveys: Parallels Between Causal Inference and Survey Inference.” Public Opinion Quarterly 81 (S1): 250–71.] {#ch2}
+# A causal inference framework for selection bias^[This chapter is a pre-copyedited, author-produced version of an article accepted for publication in Public Opinion Quarterly following peer review. The version of record: Mercer, Andrew W., Frauke Kreuter, Scott Keeter, and Elizabeth A. Stuart. 2017. “Theory and Practice in Nonprobability Surveys: Parallels Between Causal Inference and Survey Inference.” Public Opinion Quarterly 81 (S1): 250–71 is available online at: https://doi.org/10.1093/poq/nfw060] {#ch2}
 
 \chaptermark{A causal inference framework}
 
